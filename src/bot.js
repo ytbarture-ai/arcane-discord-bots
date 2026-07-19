@@ -53,7 +53,7 @@ function requireGuild(ctx) {
 function requirePermission(ctx, command) {
   const permission = PERMISSION_MAP[command];
   if (permission && (!ctx.member || !hasPermission(ctx.member, permission))) {
-    throw new UserFacingError('Vous ne disposez pas de l’autorisation nécessaire pour cette commande.');
+    throw new UserFacingError('Vous ne disposez pas de l\'autorisation nécessaire pour cette commande.');
   }
 }
 
@@ -185,7 +185,7 @@ async function grantRewardRoles(ctx, member, level) {
         await member.roles.add(role, `Récompense de niveau ${level}`);
         added.push(role);
       } catch (error) {
-        console.warn(`[${ctx.bot.displayName}] impossible d’attribuer le rôle ${roleId}: ${error.message}`);
+        console.warn(`[${ctx.bot.displayName}] impossible d'attribuer le rôle ${roleId}: ${error.message}`);
       }
     }
   }
@@ -260,7 +260,7 @@ async function commandAvatar(ctx, targetUser = ctx.user) {
 async function commandHelp(ctx) {
   const description = `Utilisez les commandes **/** ou le préfixe **${PREFIX}**. Les commandes de modération exigent les permissions Discord correspondantes.`;
   await ctx.reply({
-    embeds: [embed(ctx.bot, 'Centre d’aide', description, [
+    embeds: [embed(ctx.bot, 'Centre d\'aide', description, [
       { name: 'Modération', value: '`/ban`, `/kick`, `/mute`, `/unmute`, `/clear`, `/lock`, `/unlock`, `/slowmode`, `/case`', inline: false },
       { name: 'Niveaux & XP', value: '`/level`, `/rank`, `/leaderboard`, `/card`, `/rewards`, `/xp`', inline: false },
       { name: 'Informations', value: '`/avatar`, `/userinfo`, `/server-info`, `/role-info`, `/boosters`, `/stats`, `/invite`, `/vote`', inline: false },
@@ -273,7 +273,7 @@ async function commandInvite(ctx) {
   const appId = ctx.client.user.id;
   const url = `https://discord.com/oauth2/authorize?client_id=${appId}&permissions=${INVITE_PERMISSIONS}&scope=bot%20applications.commands`;
   await ctx.reply({
-    embeds: [embed(ctx.bot, `Inviter ${ctx.bot.displayName}`, `[Cliquez ici pour inviter le bot](${url}).\n\nLe serveur choisira les permissions définitives lors de l’installation.`)]
+    embeds: [embed(ctx.bot, `Inviter ${ctx.bot.displayName}`, `[Cliquez ici pour inviter le bot](${url}).\n\nLe serveur choisira les permissions définitives lors de l'installation.`)]
   });
 }
 
@@ -307,19 +307,19 @@ async function commandMute(ctx, target, durationText, reason) {
   const duration = parseDuration(durationText);
   if (!duration) throw new UserFacingError('Durée invalide. Utilisez par exemple `10m`, `2h`, `3d` ou `1w` (maximum 28 jours).');
   if (!target || !target.moderatable || !isManageable(ctx.member, target, ctx.guild)) {
-    throw new UserFacingError('Je ne peux pas mettre ce membre à l’expiration. Vérifiez la hiérarchie des rôles et mes permissions.');
+    throw new UserFacingError('Je ne peux pas mettre ce membre à l\'expiration. Vérifiez la hiérarchie des rôles et mes permissions.');
   }
   const clean = cleanReason(reason);
   await target.timeout(duration, `${clean} • par ${userName(ctx.user)}`);
   const entry = await recordCase(ctx, 'MUTE', target, clean);
-  await ctx.reply({ embeds: [successEmbed(ctx.bot, 'Membre mis à l’expiration', `${memberMention(target)} est limité pendant **${formatDuration(duration)}**.\nCas **#${entry.number}** — ${clean}`)] });
+  await ctx.reply({ embeds: [successEmbed(ctx.bot, 'Membre mis à l\'expiration', `${memberMention(target)} est limité pendant **${formatDuration(duration)}**.\nCas **#${entry.number}** — ${clean}`)] });
 }
 
 async function commandUnmute(ctx, target, reason) {
   requireGuild(ctx);
   requirePermission(ctx, 'unmute');
   if (!target || !target.moderatable || !isManageable(ctx.member, target, ctx.guild)) {
-    throw new UserFacingError('Je ne peux pas retirer l’expiration de ce membre.');
+    throw new UserFacingError('Je ne peux pas retirer l\'expiration de ce membre.');
   }
   const clean = cleanReason(reason);
   await target.timeout(null, `${clean} • par ${userName(ctx.user)}`);
@@ -334,7 +334,7 @@ async function commandUnban(ctx, userId, reason) {
   const clean = cleanReason(reason);
   await guild.members.unban(String(userId), `${clean} • par ${userName(ctx.user)}`);
   const entry = await recordCase(ctx, 'UNBAN', String(userId), clean);
-  await ctx.reply({ embeds: [successEmbed(ctx.bot, 'Utilisateur débanni', `L’utilisateur \\`${userId}\\` a été débanni.\nCas **#${entry.number}** — ${clean}`)] });
+  await ctx.reply({ embeds: [successEmbed(ctx.bot, 'Utilisateur débanni', `L'utilisateur \`${userId}\` a été débanni.\nCas **#${entry.number}** — ${clean}`)] });
 }
 
 async function commandClear(ctx, amount) {
@@ -365,7 +365,7 @@ async function commandUnlock(ctx, channel = ctx.channel) {
   const target = ensureTextChannel(channel);
   const state = ctx.store.getGuild(ctx.bot.key, guild.id);
   const locks = state.channelLocks || {};
-  if (!(target.id in locks)) throw new UserFacingError('Ce salon n’a pas été verrouillé par ce bot, afin de préserver ses permissions existantes.');
+  if (!(target.id in locks)) throw new UserFacingError('Ce salon n\'a pas été verrouillé par ce bot, afin de préserver ses permissions existantes.');
   const backup = locks[target.id];
   const everyone = guild.roles.everyone;
   if (backup === null) {
@@ -453,7 +453,7 @@ async function commandLeaderboard(ctx, page = 1) {
   const guild = requireGuild(ctx);
   const state = ctx.store.getGuild(ctx.bot.key, guild.id);
   const rows = Object.entries(state.members).sort(([, a], [, b]) => b.xp - a.xp);
-  if (!rows.length) throw new UserFacingError('Aucune donnée XP n’est encore disponible sur ce serveur.');
+  if (!rows.length) throw new UserFacingError('Aucune donnée XP n\'est encore disponible sur ce serveur.');
   const pageSize = 10;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(Math.max(1, Number(page)), pageCount);
@@ -470,7 +470,7 @@ async function commandRank(ctx, targetUser = ctx.user) {
   const state = ctx.store.getGuild(ctx.bot.key, guild.id);
   const rows = Object.entries(state.members).sort(([, a], [, b]) => b.xp - a.xp);
   const index = rows.findIndex(([id]) => id === targetUser.id);
-  if (index < 0) throw new UserFacingError('Ce membre n’a pas encore gagné d’XP.');
+  if (index < 0) throw new UserFacingError('Ce membre n\'a pas encore gagné d\'XP.');
   const profile = rows[index][1];
   await ctx.reply({ embeds: [embed(ctx.bot, `Rang de ${userName(targetUser)}`, `**#${index + 1}** sur ${rows.length} membre(s) classé(s).\nNiveau **${levelFromTotalXp(profile.xp)}** • **${Math.floor(profile.xp)} XP**`)] });
 }
@@ -492,7 +492,7 @@ async function commandRewards(ctx, action, values) {
   const state = ctx.store.getGuild(ctx.bot.key, guild.id);
   if (action === 'list') {
     const entries = Object.entries(state.rewards || {}).sort(([a], [b]) => Number(a) - Number(b));
-    if (!entries.length) throw new UserFacingError('Aucune récompense de niveau n’est configurée.');
+    if (!entries.length) throw new UserFacingError('Aucune récompense de niveau n\'est configurée.');
     await ctx.reply({ embeds: [embed(ctx.bot, 'Récompenses de niveau', entries.map(([level, roleId]) => `Niveau **${level}** → <@&${roleId}>`).join('\n'))] });
     return;
   }
@@ -507,7 +507,7 @@ async function commandRewards(ctx, action, values) {
     return;
   }
   if (action === 'remove') {
-    if (!state.rewards?.[String(values.level)]) throw new UserFacingError('Aucune récompense n’est configurée à ce niveau.');
+    if (!state.rewards?.[String(values.level)]) throw new UserFacingError('Aucune récompense n\'est configurée à ce niveau.');
     await ctx.store.mutate(ctx.bot.key, guild.id, (current) => {
       delete current.rewards[String(values.level)];
     });
@@ -526,7 +526,7 @@ async function commandXp(ctx, action, values) {
     return;
   }
   const target = await resolveMember(guild, values.user);
-  if (!target) throw new UserFacingError('Ce membre n’est plus présent sur le serveur.');
+  if (!target) throw new UserFacingError('Ce membre n\'est plus présent sur le serveur.');
   const state = ctx.store.getGuild(ctx.bot.key, guild.id);
   const currentXp = state.members[target.id]?.xp || 0;
   let nextXp = currentXp;
@@ -539,7 +539,7 @@ async function commandXp(ctx, action, values) {
     label = `**${values.amount} XP** ont été retirés à ${memberMention(target)}.`;
   } else if (action === 'reset-member') {
     nextXp = 0;
-    label = `L’XP de ${memberMention(target)} a été réinitialisée.`;
+    label = `L'XP de ${memberMention(target)} a été réinitialisée.`;
   } else if (action === 'set-level') {
     nextXp = totalXpForLevel(Number(values.level));
     label = `${memberMention(target)} est désormais au **niveau ${values.level}**.`;
@@ -640,7 +640,7 @@ async function commandStats(ctx) {
 }
 
 async function commandPremium(ctx) {
-  await ctx.reply({ embeds: [embed(ctx.bot, 'Arcane Premium', 'Le système Premium est préparé mais n’est pas encore activé. La future version pourra inviter automatiquement **Arcane Premium** sur un serveur autorisé, après mise en place d’un paiement et d’une vérification sécurisée.')] });
+  await ctx.reply({ embeds: [embed(ctx.bot, 'Arcane Premium', 'Le système Premium est préparé mais n\'est pas encore activé. La future version pourra inviter automatiquement **Arcane Premium** sur un serveur autorisé, après mise en place d\'un paiement et d\'une vérification sécurisée.')] });
 }
 
 async function commandSupport(ctx) {
@@ -709,7 +709,7 @@ async function executeSlash(ctx) {
       level: interaction.options.getInteger('niveau')
     });
     case 'prefix': return commandPrefix(ctx, interaction.options.getSubcommand(), interaction.options.getString('valeur'));
-    default: throw new UserFacingError('Cette commande n’est pas encore disponible.');
+    default: throw new UserFacingError('Cette commande n\'est pas encore disponible.');
   }
 }
 
