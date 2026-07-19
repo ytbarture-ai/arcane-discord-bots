@@ -31,6 +31,9 @@ function createGuildState() {
     rewards: {},
     // Custom commands (premium)
     customCommands: {},
+    // AI Guild credits
+    aiguildCredits: null,      // nombre restant (null = pas encore initialisé)
+    aiguildPeriodStart: null,  // timestamp ISO du début de la période
     stats: {
       messages: 0,
       moderations: 0,

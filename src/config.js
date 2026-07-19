@@ -81,8 +81,32 @@ export const BOTS = [
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/2.png',
     defaultPrefix: '!',
     isPremium: false
+  },
+  {
+    key: 'aiguild',
+    displayName: 'AI Guild',
+    token: process.env.AIGUILD_TOKEN || '',
+    color: 0x6366f1,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/0.png',
+    defaultPrefix: '/',
+    isPremium: false
+  },
+  {
+    key: 'aiguild-premium',
+    displayName: 'AI Guild Premium',
+    token: process.env.AIGUILD_PREMIUM_TOKEN || '',
+    color: 0xa855f7,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/4.png',
+    defaultPrefix: '/',
+    isPremium: true
   }
 ];
+
+// AI Guild
+export const OPENAI_API_KEY          = process.env.OPENAI_API_KEY || '';
+export const AIGUILD_FREE_CREDITS    = 10;   // credits par période de 2 semaines
+export const AIGUILD_FREE_PERIOD_MS  = 14 * 24 * 60 * 60 * 1000; // 2 semaines en ms
+export const AIGUILD_WEBSITE         = 'https://aiguild.me';
 
 // Leveling defaults
 // Support

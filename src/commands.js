@@ -103,6 +103,27 @@ export function buildCommandPayloads() {
       .addUserOption(user).addStringOption(reason),
     new SlashCommandBuilder().setName('userinfo').setDescription("Affiche les informations d\'un membre.")
       .addUserOption((option) => option.setName('membre').setDescription('Membre ciblé.').setRequired(false)),
+    new SlashCommandBuilder().setName('generate').setDescription('🤖 Génère automatiquement la structure de votre serveur Discord avec l\'IA.')
+      .addStringOption((o) => o.setName('description').setDescription('Décrivez votre communauté (ex: serveur gaming FPS, école de code...).').setRequired(true).setMaxLength(300))
+      .addStringOption((o) => o.setName('langue').setDescription('Langue des salons et rôles.').setRequired(false)
+        .addChoices(
+          { name: 'Français', value: 'fr' },
+          { name: 'English', value: 'en' },
+          { name: 'Español', value: 'es' },
+          { name: 'Deutsch', value: 'de' },
+          { name: 'Português', value: 'pt' },
+          { name: 'Polski', value: 'pl' }
+        ))
+      .addStringOption((o) => o.setName('style').setDescription('Style du serveur.').setRequired(false)
+        .addChoices(
+          { name: '🎮 Gaming', value: 'gaming' },
+          { name: '📚 Éducation', value: 'education' },
+          { name: '💼 Business', value: 'business' },
+          { name: '🎭 Roleplay', value: 'roleplay' },
+          { name: '🎨 Créatif', value: 'creative' },
+          { name: '🌍 Communauté', value: 'community' }
+        )),
+    new SlashCommandBuilder().setName('credits').setDescription('🪙 Affiche vos crédits de génération IA restants.'),
     new SlashCommandBuilder().setName('vote').setDescription('Voter pour le bot.'),
     new SlashCommandBuilder().setName('xp').setDescription("Gère l\'XP et les niveaux.")
       .addSubcommand((sub) => sub.setName('add').setDescription("Ajoute de l\'XP à un membre.").addUserOption(user)
@@ -131,5 +152,6 @@ export const PERMISSION_MAP = {
   rewards: PermissionFlagsBits.ManageGuild,
   xp: PermissionFlagsBits.ManageGuild,
   prefix: PermissionFlagsBits.ManageGuild,
-  config: PermissionFlagsBits.ManageGuild
+  config: PermissionFlagsBits.ManageGuild,
+  generate: PermissionFlagsBits.ManageGuild
 };

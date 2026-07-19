@@ -7,8 +7,12 @@ import {
 } from 'discord.js';
 import { buildCommandPayloads, PERMISSION_MAP } from './commands.js';
 import {
+  AIGUILD_FREE_CREDITS,
+  AIGUILD_FREE_PERIOD_MS,
+  AIGUILD_WEBSITE,
   COMMAND_COOLDOWN_MS,
   FREE_MAX_REWARDS,
+  OPENAI_API_KEY,
   PREFIX,
   SUPPORT_EMAIL,
   TOP_GG_URL,
@@ -792,6 +796,182 @@ async function commandConfig(ctx, subcommand, values) {
   }
 }
 
+
+/* ═══════════════════ AI GUILD — GÉNÉRATION IA ═══════════════════ */
+
+function getOrInitCredits(state, isPremium) {
+  const now = Date.now();
+  if (isPremium) return Infinity;
+  if (!state.aiguildPeriodStart || now - new Date(state.aiguildPeriodStart).getTime() >= AIGUILD_FREE_PERIOD_MS) {
+    state.aiguildCredits = AIGUILD_FREE_CREDITS;
+    state.aiguildPeriodStart = new Date().toISOString();
+  }
+  return state.aiguildCredits ?? AIGUILD_FREE_CREDITS;
+}
+
+async function openaiGenerate(description, langue, style) {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY manquant.');
+  const { default: OpenAI } = await import('openai');
+  const client = new OpenAI({ apiKey: OPENAI_API_KEY });
+  const langMap = { fr: 'français', en: 'English', es: 'español', de: 'Deutsch', pt: 'português', pl: 'polski' };
+  const langName = langMap[langue] || 'français';
+  const systemPrompt = `Tu es un expert en configuration de serveurs Discord. 
+Tu dois générer une structure complète de serveur Discord en JSON strict.
+Langue des noms: ${langName}. Style: ${style || 'communauté générale'}.
+Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans explication.
+Format OBLIGATOIRE:
+{
+  "roles": [
+    {"name": "string", "color": "#hexcode", "hoist": boolean, "admin": boolean}
+  ],
+  "categories": [
+    {
+      "name": "STRING EN MAJUSCULES",
+      "channels": [
+        {"name": "nom-avec-tirets", "type": "text"|"voice", "topic": "description courte ou null"}
+      ]
+    }
+  ]
+}
+Règles: max 5 rôles, max 5 catégories, max 4 salons par catégorie. Noms de salons en minuscules avec tirets. Couleurs hex valides.`;
+
+  const response = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Génère une structure pour: "${description}"` }
+    ],
+    max_tokens: 1200,
+    temperature: 0.7
+  });
+  const raw = response.choices[0]?.message?.content?.trim() || '';
+  return JSON.parse(raw);
+}
+
+async function applyGuildStructure(guild, structure, bot) {
+  const created = { roles: [], categories: [], channels: [] };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Créer les rôles (skip @everyone)
+  for (const roleDef of (structure.roles || [])) {
+    try {
+      const role = await guild.roles.create({
+        name: roleDef.name,
+        color: roleDef.color || '#99aab5',
+        hoist: roleDef.hoist ?? false,
+        permissions: roleDef.admin ? ['Administrator'] : []
+      });
+      created.roles.push(role.name);
+      await sleep(300);
+    } catch (e) {
+      console.warn(`[${bot.displayName}] rôle ${roleDef.name} ignoré: ${e.message}`);
+    }
+  }
+
+  // Créer catégories + salons
+  for (const catDef of (structure.categories || [])) {
+    try {
+      const category = await guild.channels.create({
+        name: catDef.name,
+        type: 4 // ChannelType.GuildCategory
+      });
+      created.categories.push(catDef.name);
+      await sleep(300);
+      for (const chanDef of (catDef.channels || [])) {
+        try {
+          const chanType = chanDef.type === 'voice' ? 2 : 0; // Voice=2, Text=0
+          await guild.channels.create({
+            name: chanDef.name,
+            type: chanType,
+            parent: category.id,
+            topic: chanType === 0 ? (chanDef.topic || null) : undefined
+          });
+          created.channels.push(chanDef.name);
+          await sleep(350);
+        } catch (e) {
+          console.warn(`[${bot.displayName}] salon ${chanDef.name} ignoré: ${e.message}`);
+        }
+      }
+    } catch (e) {
+      console.warn(`[${bot.displayName}] catégorie ${catDef.name} ignorée: ${e.message}`);
+    }
+  }
+  return created;
+}
+
+async function commandGenerate(ctx, description, langue = 'fr', style = null) {
+  const guild = requireGuild(ctx);
+  requirePermission(ctx, 'generate');
+
+  if (!OPENAI_API_KEY) throw new UserFacingError('La clé `OPENAI_API_KEY` n\'est pas configurée. Ajoutez-la dans Railway pour activer la génération IA.');
+
+  // Vérification des crédits
+  let remainingAfter;
+  await ctx.store.mutate(ctx.bot.key, guild.id, (state) => {
+    const credits = getOrInitCredits(state, ctx.bot.isPremium);
+    if (credits <= 0) throw new UserFacingError(`Vous n\'avez plus de crédits de génération. La période de renouvellement est de 2 semaines.\n[Obtenir Premium](${AIGUILD_WEBSITE})`);
+    if (!ctx.bot.isPremium) {
+      state.aiguildCredits -= 1;
+      remainingAfter = state.aiguildCredits;
+    } else {
+      remainingAfter = '∞';
+    }
+  });
+
+  // Message d'attente
+  await ctx.reply({ embeds: [embed(ctx.bot, '⚙️ Génération en cours…', `L\'IA analyse votre description et prépare la structure de **${guild.name}**. Cela peut prendre 10–20 secondes.`)] });
+
+  let structure;
+  try {
+    structure = await openaiGenerate(description, langue, style);
+  } catch (e) {
+    console.error(`[${ctx.bot.displayName}] OpenAI error:`, e.message);
+    throw new UserFacingError('La génération IA a échoué. Réessayez dans quelques instants.');
+  }
+
+  // Appliquer la structure
+  let created;
+  try {
+    created = await applyGuildStructure(guild, structure, ctx.bot);
+  } catch (e) {
+    throw new UserFacingError(`Erreur lors de la création : ${e.message}. Vérifiez que le bot a la permission **Administrateur**.`);
+  }
+
+  const rolesText    = created.roles.length    ? created.roles.map((r) => `\`${r}\``).join(', ')       : 'Aucun';
+  const catsText     = created.categories.length ? created.categories.map((c) => `\`${c}\``).join(', ') : 'Aucune';
+  const chansText    = created.channels.length  ? `${created.channels.length} salon(s) créé(s)`         : 'Aucun';
+  const creditsLine  = ctx.bot.isPremium ? '✨ Crédits illimités (Premium)' : `🪙 Crédits restants : **${remainingAfter}** / ${AIGUILD_FREE_CREDITS}`;
+
+  await ctx.followUp?.({ embeds: [successEmbed(ctx.bot, '✅ Serveur généré !', [
+    `**Rôles :** ${rolesText}`,
+    `**Catégories :** ${catsText}`,
+    `**Salons :** ${chansText}`,
+    '',
+    creditsLine
+  ].join('\n'))] }).catch(() => {});
+}
+
+async function commandCredits(ctx) {
+  const guild = requireGuild(ctx);
+  let credits, periodStart;
+  ctx.store.mutate(ctx.bot.key, guild.id, (state) => {
+    credits = getOrInitCredits(state, ctx.bot.isPremium);
+    periodStart = state.aiguildPeriodStart;
+  }).catch(() => {});
+  // read-only peek without mutating
+  const state = ctx.store.getGuild(ctx.bot.key, guild.id);
+  credits = ctx.bot.isPremium ? '∞' : (state.aiguildCredits ?? AIGUILD_FREE_CREDITS);
+  periodStart = state.aiguildPeriodStart;
+  const renewDate = periodStart ? new Date(new Date(periodStart).getTime() + AIGUILD_FREE_PERIOD_MS) : null;
+  const renewText = renewDate ? `<t:${Math.floor(renewDate.getTime() / 1000)}:R>` : 'Non initialisé';
+  const fields = [
+    { name: '🪙 Crédits restants', value: `**${credits}**${ctx.bot.isPremium ? '' : ` / ${AIGUILD_FREE_CREDITS}`}`, inline: true },
+    { name: '🔄 Renouvellement', value: ctx.bot.isPremium ? '✨ Premium — illimité' : renewText, inline: true },
+    { name: '🌐 Plus de crédits', value: `[AI Guild Premium](${AIGUILD_WEBSITE})`, inline: true }
+  ];
+  await ctx.reply({ embeds: [embed(ctx.bot, '🪙 Crédits AI Guild', null, fields)] });
+}
+
 async function commandSupport(ctx) {
   const body = SUPPORT_EMAIL
     ? `📧 **Contactez le support** : ${SUPPORT_EMAIL}\n\n💡 Consultez également \`/help\` et vérifiez que le bot a les bonnes permissions sur votre serveur.`
@@ -820,6 +1000,11 @@ async function executeSlash(ctx) {
     case 'premium': return commandPremium(ctx);
     case 'support': return commandSupport(ctx);
     case 'vote': return commandVote(ctx);
+    case 'generate': return commandGenerate(ctx,
+      interaction.options.getString('description'),
+      interaction.options.getString('langue') || 'fr',
+      interaction.options.getString('style'));
+    case 'credits': return commandCredits(ctx);
     case 'ban': return commandBan(ctx, await resolveMember(ctx.guild, interaction.options.getUser('membre')), interaction.options.getString('raison'), interaction.options.getInteger('jours_messages') || 0);
     case 'kick': return commandKick(ctx, await resolveMember(ctx.guild, interaction.options.getUser('membre')), interaction.options.getString('raison'));
     case 'mute': return commandMute(ctx, await resolveMember(ctx.guild, interaction.options.getUser('membre')), interaction.options.getString('duree'), interaction.options.getString('raison'));
@@ -905,6 +1090,8 @@ async function executePrefix(ctx, command, args) {
   if (normalized === 'premium') return commandPremium(ctx);
   if (normalized === 'support') return commandSupport(ctx);
   if (normalized === 'vote') return commandVote(ctx);
+  if (normalized === 'generate') return commandGenerate(ctx, args.join(' '), 'fr', null);
+  if (normalized === 'credits') return commandCredits(ctx);
   if (normalized === 'boosters') return commandBoosters(ctx);
   if (normalized === 'dashboard') return commandDashboard(ctx);
   if (normalized === 'stats') return commandStats(ctx);
