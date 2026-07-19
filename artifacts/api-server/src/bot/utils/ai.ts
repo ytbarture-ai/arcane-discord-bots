@@ -1,16 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+// OpenRouter API (OpenAI-compatible format)
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
-let client: Anthropic | null = null;
-
-export function getAIClient(): Anthropic {
-  if (!client) {
-    const apiKey = process.env["ANTHROPIC_API_KEY"];
-    if (!apiKey) {
-      throw new Error("ANTHROPIC_API_KEY environment variable is not set");
-    }
-    client = new Anthropic({ apiKey });
-  }
-  return client;
+function getApiKey(): string {
+  const key = process.env["ANTHROPIC_API_KEY"]; // variable réutilisée pour la clé OpenRouter
+  if (!key) throw new Error("ANTHROPIC_API_KEY (OpenRouter key) is not set");
+  return key;
 }
 
 export interface ServerStructure {
@@ -38,8 +32,6 @@ export async function generateServerStructure(
   serverType: string,
   language: string,
 ): Promise<ServerStructure> {
-  const ai = getAIClient();
-
   const langInstruction =
     language === "fr"
       ? "Génère TOUT en français (noms de catégories, channels, rôles)."
@@ -80,23 +72,35 @@ Rules:
 - Colors should be hex codes like "#3498db"
 - ONLY return valid JSON, no explanation`;
 
-  const message = await ai.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 2000,
-    messages: [{ role: "user", content: prompt }],
+  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${getApiKey()}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://aiguild.me",
+      "X-Title": "AiGuild Bot",
+    },
+    body: JSON.stringify({
+      model: "anthropic/claude-haiku-4-5",
+      max_tokens: 2000,
+      messages: [{ role: "user", content: prompt }],
+    }),
   });
 
-  const content = message.content[0];
-  if (content.type !== "text") {
-    throw new Error("Unexpected AI response type");
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenRouter error ${res.status}: ${err}`);
   }
 
-  // Extract JSON from response
-  const text = content.text.trim();
+  const data = await res.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
+
+  const text = data.choices[0]?.message?.content?.trim();
+  if (!text) throw new Error("Empty response from OpenRouter");
+
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error("No JSON found in AI response");
-  }
+  if (!jsonMatch) throw new Error("No JSON found in AI response");
 
   return JSON.parse(jsonMatch[0]) as ServerStructure;
 }
