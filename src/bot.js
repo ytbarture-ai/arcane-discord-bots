@@ -621,7 +621,7 @@ async function commandPrefix(ctx, action, value) {
   const guild = requireGuild(ctx);
   if (action === 'view') {
     const state = ctx.store.getGuild(ctx.bot.key, guild.id);
-    await ctx.reply({ embeds: [embed(ctx.bot, 'Préfixe actuel', `Le préfixe textuel est **${state.prefix || PREFIX}**. Les commandes slash restent toujours disponibles.`)] });
+    await ctx.reply({ embeds: [embed(ctx.bot, 'Préfixe actuel', `Le préfixe textuel est **${state.prefix ?? ctx.bot.defaultPrefix ?? PREFIX}**. Les commandes slash restent toujours disponibles.`)] });
     return;
   }
   requirePermission(ctx, 'prefix');
@@ -637,7 +637,7 @@ async function commandDashboard(ctx) {
   requirePermission(ctx, 'dashboard');
   const state = ctx.store.getGuild(ctx.bot.key, guild.id);
   await ctx.reply({ embeds: [embed(ctx.bot, 'Tableau de bord', `Configuration de **${guild.name}**`, [
-    { name: 'Préfixe', value: `\`${state.prefix || PREFIX}\``, inline: true },
+    { name: 'Préfixe', value: `\`${state.prefix ?? ctx.bot.defaultPrefix ?? PREFIX}\``, inline: true },
     { name: 'Niveaux', value: state.levelingEnabled ? 'Activés' : 'Désactivés', inline: true },
     { name: 'Multiplicateur XP', value: `x${state.xpMultiplier || 1}`, inline: true },
     { name: 'Membres classés', value: `${Object.keys(state.members).length}`, inline: true },
@@ -1062,7 +1062,7 @@ export function createBot(bot, store) {
     client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot || !message.guild) return;
     const state = store.getGuild(bot.key, message.guild.id);
-    const prefix = state.prefix || PREFIX;
+    const prefix = state.prefix ?? bot.defaultPrefix ?? PREFIX;
     const ctx = makeContext({ bot, client, store, message });
     try {
       await awardMessageXp(ctx);

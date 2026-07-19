@@ -9,7 +9,7 @@ function currentMonth() {
 
 function createGuildState() {
   return {
-    prefix: DEFAULT_PREFIX,
+    prefix: null,
     levelingEnabled: true,
     xpMultiplier: 1,
     // Custom XP per message (null = use defaults from config)

@@ -16,6 +16,7 @@ export const BOTS = [
     token: process.env.ARCANE_TOKEN || '',
     color: 0x8b5cf6,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/0.png',
+    defaultPrefix: '!',
     isPremium: false
   },
   {
@@ -24,6 +25,7 @@ export const BOTS = [
     token: process.env.ARCANE_CHAN_TOKEN || '',
     color: 0xec4899,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/1.png',
+    defaultPrefix: '!',
     isPremium: false
   },
   {
@@ -32,7 +34,17 @@ export const BOTS = [
     token: process.env.DISCORD_TOKEN || '',
     color: 0xf59e0b,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/4.png',
+    defaultPrefix: '!',
     isPremium: true
+  },
+  {
+    key: 'probot',
+    displayName: 'ProBot',
+    token: process.env.PROBOT_FREE_TOKEN || '',
+    color: 0x2563eb,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/0.png',
+    defaultPrefix: '+',
+    isPremium: false
   },
   {
     key: 'probot-premium',
@@ -40,6 +52,25 @@ export const BOTS = [
     token: process.env.PROBOT_TOKEN || '',
     color: 0x3b82f6,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/3.png',
+    defaultPrefix: '+',
+    isPremium: true
+  },
+  {
+    key: 'dyno',
+    displayName: 'Dyno',
+    token: process.env.DYNO_TOKEN || '',
+    color: 0x1e40af,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/1.png',
+    defaultPrefix: '?',
+    isPremium: false
+  },
+  {
+    key: 'dyno-premium',
+    displayName: 'Dyno Premium',
+    token: process.env.DYNO_PREMIUM_TOKEN || '',
+    color: 0x7c3aed,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/4.png',
+    defaultPrefix: '?',
     isPremium: true
   },
   {
@@ -48,6 +79,7 @@ export const BOTS = [
     token: process.env.SUPPORT_TOKEN || '',
     color: 0x22c55e,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/2.png',
+    defaultPrefix: '!',
     isPremium: false
   }
 ];
