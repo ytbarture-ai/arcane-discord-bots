@@ -2,15 +2,35 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { STORE_PATH, DEFAULT_PREFIX } from './config.js';
 
+function currentMonth() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 function createGuildState() {
   return {
     prefix: DEFAULT_PREFIX,
     levelingEnabled: true,
     xpMultiplier: 1,
+    // Custom XP per message (null = use defaults from config)
+    xpMin: null,
+    xpMax: null,
+    // Voice XP (premium)
+    voiceXpEnabled: false,
+    voiceXpMin: null,
+    voiceXpMax: null,
+    // Reaction XP (premium)
+    reactionXpEnabled: false,
+    reactionXpMin: null,
+    reactionXpMax: null,
+    // Monthly leaderboard tracking
+    monthlyPeriod: null,
     members: {},
     cases: [],
     nextCaseNumber: 1,
     rewards: {},
+    // Custom commands (premium)
+    customCommands: {},
     stats: {
       messages: 0,
       moderations: 0,
@@ -18,6 +38,10 @@ function createGuildState() {
       createdAt: new Date().toISOString()
     }
   };
+}
+
+function createMemberProfile() {
+  return { xp: 0, level: 0, messages: 0, voiceMinutes: 0, lastXpAt: 0, monthlyXp: 0, updatedAt: new Date().toISOString() };
 }
 
 export class JsonStore {
@@ -53,21 +77,42 @@ export class JsonStore {
     if (!this.data.guilds[key]) {
       this.data.guilds[key] = createGuildState();
     }
-    return this.data.guilds[key];
+    // Back-fill missing premium fields on existing guilds
+    const g = this.data.guilds[key];
+    if (g.xpMin === undefined)             g.xpMin = null;
+    if (g.xpMax === undefined)             g.xpMax = null;
+    if (g.voiceXpEnabled === undefined)    g.voiceXpEnabled = false;
+    if (g.voiceXpMin === undefined)        g.voiceXpMin = null;
+    if (g.voiceXpMax === undefined)        g.voiceXpMax = null;
+    if (g.reactionXpEnabled === undefined) g.reactionXpEnabled = false;
+    if (g.reactionXpMin === undefined)     g.reactionXpMin = null;
+    if (g.reactionXpMax === undefined)     g.reactionXpMax = null;
+    if (g.monthlyPeriod === undefined)     g.monthlyPeriod = null;
+    if (!g.customCommands)                 g.customCommands = {};
+    return g;
   }
 
   getMember(botKey, guildId, userId) {
     const guild = this.getGuild(botKey, guildId);
     if (!guild.members[userId]) {
-      guild.members[userId] = {
-        xp: 0,
-        level: 0,
-        messages: 0,
-        lastXpAt: 0,
-        updatedAt: new Date().toISOString()
-      };
+      guild.members[userId] = createMemberProfile();
     }
-    return guild.members[userId];
+    const m = guild.members[userId];
+    if (m.monthlyXp === undefined) m.monthlyXp = 0;
+    if (m.voiceMinutes === undefined) m.voiceMinutes = 0;
+    return m;
+  }
+
+  /** Reset monthly XP for all members if the period has rolled over. */
+  checkMonthlyReset(botKey, guildId) {
+    const guild = this.getGuild(botKey, guildId);
+    const now = currentMonth();
+    if (guild.monthlyPeriod !== now) {
+      guild.monthlyPeriod = now;
+      for (const profile of Object.values(guild.members)) {
+        profile.monthlyXp = 0;
+      }
+    }
   }
 
   async mutate(botKey, guildId, callback) {

@@ -8,8 +8,11 @@ import {
 import { buildCommandPayloads, PERMISSION_MAP } from './commands.js';
 import {
   COMMAND_COOLDOWN_MS,
+  FREE_MAX_REWARDS,
   PREFIX,
   TOP_GG_URL,
+  VOICE_XP_MAX,
+  VOICE_XP_MIN,
   XP_COOLDOWN_MS,
   XP_PER_MESSAGE_MAX,
   XP_PER_MESSAGE_MIN
@@ -231,13 +234,17 @@ async function awardMessageXp(ctx) {
   const now = Date.now();
   if (now - Number(profile.lastXpAt || 0) < XP_COOLDOWN_MS) return;
 
-  const amount = Math.floor(Math.random() * (XP_PER_MESSAGE_MAX - XP_PER_MESSAGE_MIN + 1)) + XP_PER_MESSAGE_MIN;
+  const xpMin = state.xpMin ?? XP_PER_MESSAGE_MIN;
+  const xpMax = state.xpMax ?? XP_PER_MESSAGE_MAX;
+  const amount = Math.floor(Math.random() * (xpMax - xpMin + 1)) + xpMin;
   const result = await ctx.store.mutate(ctx.bot.key, guild.id, (current) => {
     const target = current.members[member.id] || {
       xp: 0, level: 0, messages: 0, lastXpAt: 0, updatedAt: new Date().toISOString()
     };
     const previousLevel = levelFromTotalXp(target.xp);
-    target.xp += amount * Number(current.xpMultiplier || 1);
+    const gained = amount * Number(current.xpMultiplier || 1);
+    target.xp += gained;
+    target.monthlyXp = (target.monthlyXp || 0) + gained;
     target.messages += 1;
     target.lastXpAt = now;
     target.level = levelFromTotalXp(target.xp);
@@ -247,6 +254,52 @@ async function awardMessageXp(ctx) {
     return { previousLevel, level: target.level };
   });
   await sendLevelUp(ctx, member, result.previousLevel, result.level);
+}
+
+async function awardVoiceXp(bot, store, guild, member, minutes) {
+  if (!guild || !member || member.user.bot) return;
+  const state = store.getGuild(bot.key, guild.id);
+  if (!state.levelingEnabled || !state.voiceXpEnabled) return;
+  const xpMin = state.voiceXpMin ?? VOICE_XP_MIN;
+  const xpMax = state.voiceXpMax ?? VOICE_XP_MAX;
+  const amount = (Math.floor(Math.random() * (xpMax - xpMin + 1)) + xpMin) * minutes;
+  const result = await store.mutate(bot.key, guild.id, (current) => {
+    const target = current.members[member.id] || { xp: 0, level: 0, messages: 0, voiceMinutes: 0, lastXpAt: 0, monthlyXp: 0, updatedAt: new Date().toISOString() };
+    const previousLevel = levelFromTotalXp(target.xp);
+    target.xp += amount;
+    target.monthlyXp = (target.monthlyXp || 0) + amount;
+    target.voiceMinutes = (target.voiceMinutes || 0) + minutes;
+    target.level = levelFromTotalXp(target.xp);
+    target.updatedAt = new Date().toISOString();
+    current.members[member.id] = target;
+    return { previousLevel, level: target.level, amount };
+  });
+  // Level-up notification — we need a text channel; skip silently if none
+  if (result.level > result.previousLevel) {
+    const channel = guild.channels.cache.find((c) => c.isTextBased() && c.permissionsFor(guild.members.me)?.has('SendMessages'));
+    if (channel) {
+      const granted = await grantRewardRoles({ bot, store, guild, user: member.user, member, channel, client: null }, member, result.level);
+      const reward = granted.length ? ` Récompense obtenue : ${granted.map((r) => r.toString()).join(', ')}.` : '';
+      await channel.send({ embeds: [successEmbed(bot, 'Niveau supérieur', `${memberMention(member)}, vous passez au **niveau ${result.level}** grâce au XP vocal.${reward}`)] }).catch(() => {});
+    }
+  }
+}
+
+async function awardReactionXp(bot, store, guild, member) {
+  if (!guild || !member || member.user.bot) return;
+  const state = store.getGuild(bot.key, guild.id);
+  if (!state.levelingEnabled || !state.reactionXpEnabled) return;
+  const xpMin = state.reactionXpMin ?? 5;
+  const xpMax = state.reactionXpMax ?? 10;
+  const amount = Math.floor(Math.random() * (xpMax - xpMin + 1)) + xpMin;
+  await store.mutate(bot.key, guild.id, (current) => {
+    const target = current.members[member.id] || { xp: 0, level: 0, messages: 0, voiceMinutes: 0, lastXpAt: 0, monthlyXp: 0, updatedAt: new Date().toISOString() };
+    target.xp += amount;
+    target.monthlyXp = (target.monthlyXp || 0) + amount;
+    target.level = levelFromTotalXp(target.xp);
+    target.updatedAt = new Date().toISOString();
+    current.members[member.id] = target;
+  });
 }
 
 async function commandAvatar(ctx, targetUser = ctx.user) {
@@ -449,20 +502,29 @@ async function commandLevel(ctx, targetUser = ctx.user, card = false) {
   await ctx.reply({ embeds: [cardEmbed] });
 }
 
-async function commandLeaderboard(ctx, page = 1) {
+async function commandLeaderboard(ctx, page = 1, type = 'all') {
   const guild = requireGuild(ctx);
+  const isMonthly = type === 'monthly';
+  if (isMonthly && !ctx.bot.isPremium) throw new UserFacingError('Le classement mensuel est réservé à Arcane Premium.');
+  if (isMonthly) ctx.store.checkMonthlyReset(ctx.bot.key, guild.id);
   const state = ctx.store.getGuild(ctx.bot.key, guild.id);
-  const rows = Object.entries(state.members).sort(([, a], [, b]) => b.xp - a.xp);
+  const rows = Object.entries(state.members)
+    .map(([id, p]) => [id, p])
+    .sort(([, a], [, b]) => (isMonthly ? (b.monthlyXp || 0) - (a.monthlyXp || 0) : b.xp - a.xp))
+    .filter(([, p]) => isMonthly ? (p.monthlyXp || 0) > 0 : p.xp > 0);
   if (!rows.length) throw new UserFacingError('Aucune donnée XP n\'est encore disponible sur ce serveur.');
   const pageSize = 10;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(Math.max(1, Number(page)), pageCount);
   const entries = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const xpLabel = isMonthly ? 'XP ce mois' : 'XP';
   const description = entries.map(([id, profile], index) => {
     const position = (currentPage - 1) * pageSize + index + 1;
-    return `**${position}.** <@${id}> — niveau **${levelFromTotalXp(profile.xp)}** • **${Math.floor(profile.xp)} XP**`;
+    const xp = isMonthly ? Math.floor(profile.monthlyXp || 0) : Math.floor(profile.xp);
+    return `**${position}.** <@${id}> — niveau **${levelFromTotalXp(profile.xp)}** • **${xp} ${xpLabel}**`;
   }).join('\n');
-  await ctx.reply({ embeds: [embed(ctx.bot, 'Classement XP', description, [{ name: 'Page', value: `${currentPage}/${pageCount}`, inline: true }])] });
+  const title = isMonthly ? 'Classement XP — Ce mois-ci' : 'Classement XP';
+  await ctx.reply({ embeds: [embed(ctx.bot, title, description, [{ name: 'Page', value: `${currentPage}/${pageCount}`, inline: true }])] });
 }
 
 async function commandRank(ctx, targetUser = ctx.user) {
@@ -499,6 +561,9 @@ async function commandRewards(ctx, action, values) {
   if (action === 'add') {
     const role = values.role;
     if (!role.editable) throw new UserFacingError('Je ne peux pas attribuer ce rôle. Placez mon rôle au-dessus de celui-ci.');
+    const maxRewards = ctx.bot.isPremium ? Infinity : FREE_MAX_REWARDS;
+    const currentCount = Object.keys(state.rewards || {}).length;
+    if (currentCount >= maxRewards) throw new UserFacingError(`Limite atteinte (${FREE_MAX_REWARDS} récompenses max). Passez à Arcane Premium pour des récompenses illimitées.`);
     await ctx.store.mutate(ctx.bot.key, guild.id, (current) => {
       current.rewards ||= {};
       current.rewards[String(values.level)] = role.id;
@@ -640,17 +705,90 @@ async function commandStats(ctx) {
 }
 
 async function commandPremium(ctx) {
-  const isPremium = ctx.bot.key === 'arcane-premium';
-  const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.user?.id}&permissions=8&scope=bot%20applications.commands`;
+  const isPremium = ctx.bot.isPremium;
+  const inviteUrl = ctx.client.user
+    ? `https://discord.com/oauth2/authorize?client_id=${ctx.client.user.id}&permissions=8&scope=bot%20applications.commands`
+    : 'https://discord.com/developers/applications';
+  const check = (free, prem) => isPremium ? `✅ ${prem}` : `${free} → ✅ ${prem} (Premium)`;
   const fields = [
-    { name: '✨ Fonctionnalités', value: 'Toutes les commandes Arcane + priorité de support.', inline: false },
-    { name: '🤖 Bot', value: '**Arcane Premium** — bot dédié, token indépendant.', inline: true },
-    { name: '📌 Statut', value: isPremium ? '🟢 Actif sur ce serveur' : '🔴 Non installé', inline: true }
+    {
+      name: 'Nivellement',
+      value: [
+        check('XP messages : défaut', 'valeurs personnalisables'),
+        check('Récompenses : 15', 'illimitées'),
+        check('Récompenses/niveau : 1', '3'),
+        check('Classement : hebdo', 'hebdo + mensuel')
+      ].join('\n'),
+      inline: false
+    },
+    {
+      name: 'XP vocal & réactions',
+      value: isPremium
+        ? '✅ XP vocal activable via `/config voice-xp`\n✅ XP de réaction activable via `/config reaction-xp`'
+        : '❌ XP vocal (Premium)\n❌ XP de réaction (Premium)',
+      inline: false
+    },
+    {
+      name: 'Carte de rang',
+      value: isPremium ? '✅ Couleur + arrière-plan personnalisés (`/card background`)' : '✅ Couleur • ❌ Arrière-plan (Premium)',
+      inline: false
+    },
+    {
+      name: 'Configuration avancée',
+      value: isPremium ? '✅ `/config xp`, `/config voice-xp`, `/config reaction-xp`' : '❌ Commande `/config` (Premium)',
+      inline: false
+    },
+    {
+      name: 'Statut',
+      value: isPremium ? '🟢 **Arcane Premium est actif sur ce serveur.**' : `🔴 Non installé — [Inviter Arcane Premium](${inviteUrl})`,
+      inline: false
+    }
   ];
-  if (!isPremium) {
-    fields.push({ name: '🔗 Inviter Arcane Premium', value: `[Cliquez ici pour inviter le bot](${inviteUrl})`, inline: false });
+  await ctx.reply({ embeds: [embed(ctx.bot, '✨ Arcane Premium', 'Comparaison des fonctionnalités entre Arcane et Arcane Premium.', fields)] });
+}
+
+async function commandConfig(ctx, subcommand, values) {
+  if (!ctx.bot.isPremium) throw new UserFacingError('La commande `/config` est réservée à Arcane Premium.');
+  requirePermission(ctx, 'config');
+  const guild = requireGuild(ctx);
+  if (subcommand === 'view') {
+    const state = ctx.store.getGuild(ctx.bot.key, guild.id);
+    const fields = [
+      { name: 'XP message', value: `Min: **${state.xpMin ?? 15}** — Max: **${state.xpMax ?? 25}**`, inline: true },
+      { name: 'XP vocal', value: state.voiceXpEnabled ? `Min: **${state.voiceXpMin ?? 10}**/min — Max: **${state.voiceXpMax ?? 20}**/min` : '❌ Désactivé', inline: true },
+      { name: 'XP réaction', value: state.reactionXpEnabled ? `Min: **${state.reactionXpMin ?? 5}** — Max: **${state.reactionXpMax ?? 10}**` : '❌ Désactivé', inline: true }
+    ];
+    await ctx.reply({ embeds: [embed(ctx.bot, 'Configuration Premium', null, fields)] });
+    return;
   }
-  await ctx.reply({ embeds: [embed(ctx.bot, 'Arcane Premium', null, fields)] });
+  if (subcommand === 'xp') {
+    const min = values.min;
+    const max = values.max;
+    if (min !== null && max !== null && min > max) throw new UserFacingError('Le minimum doit être inférieur ou égal au maximum.');
+    await ctx.store.mutate(ctx.bot.key, guild.id, (state) => {
+      if (min !== null) state.xpMin = min;
+      if (max !== null) state.xpMax = max;
+    });
+    await ctx.reply({ embeds: [successEmbed(ctx.bot, 'XP mis à jour', `XP par message : **${min ?? '(inchangé)'}** – **${max ?? '(inchangé)'}**.`)] });
+    return;
+  }
+  if (subcommand === 'voice-xp') {
+    await ctx.store.mutate(ctx.bot.key, guild.id, (state) => {
+      state.voiceXpEnabled = values.actif;
+      if (values.min !== null) state.voiceXpMin = values.min;
+      if (values.max !== null) state.voiceXpMax = values.max;
+    });
+    await ctx.reply({ embeds: [successEmbed(ctx.bot, 'XP vocal', values.actif ? 'XP vocal **activé**. Les membres gagnent de l\'XP chaque minute en vocal.' : 'XP vocal **désactivé**.')] });
+    return;
+  }
+  if (subcommand === 'reaction-xp') {
+    await ctx.store.mutate(ctx.bot.key, guild.id, (state) => {
+      state.reactionXpEnabled = values.actif;
+      if (values.min !== null) state.reactionXpMin = values.min;
+      if (values.max !== null) state.reactionXpMax = values.max;
+    });
+    await ctx.reply({ embeds: [successEmbed(ctx.bot, 'XP de réaction', values.actif ? 'XP de réaction **activé**. Les membres gagnent de l\'XP en ajoutant des réactions.' : 'XP de réaction **désactivé**.')] });
+  }
 }
 
 async function commandSupport(ctx) {
@@ -690,7 +828,7 @@ async function executeSlash(ctx) {
     case 'slowmode': return commandSlowmode(ctx, interaction.options.getInteger('secondes'), interaction.options.getChannel('salon') || ctx.channel);
     case 'boosters': return commandBoosters(ctx);
     case 'dashboard': return commandDashboard(ctx);
-    case 'leaderboard': return commandLeaderboard(ctx, interaction.options.getInteger('page') || 1);
+    case 'leaderboard': return commandLeaderboard(ctx, interaction.options.getInteger('page') || 1, interaction.options.getString('type') || 'all');
     case 'lb': return commandLeaderboard(ctx, 1);
     case 'level': return commandLevel(ctx, interaction.options.getUser('membre') || ctx.user);
     case 'rank': return commandRank(ctx, interaction.options.getUser('membre') || ctx.user);
@@ -705,9 +843,20 @@ async function executeSlash(ctx) {
     });
     case 'card': {
       const action = interaction.options.getSubcommand();
-      return action === 'color'
-        ? commandCardColor(ctx, interaction.options.getString('hex'))
-        : commandLevel(ctx, interaction.options.getUser('membre') || ctx.user, true);
+      if (action === 'color') return commandCardColor(ctx, interaction.options.getString('hex'));
+      if (action === 'background') {
+        if (!ctx.bot.isPremium) throw new UserFacingError('L\'arrière-plan de carte est réservé à Arcane Premium.');
+        const url = interaction.options.getString('url');
+        const guild2 = requireGuild(ctx);
+        await ctx.store.mutate(ctx.bot.key, guild2.id, (state) => {
+          const profile = state.members[ctx.user.id] || { xp: 0, level: 0, messages: 0, lastXpAt: 0 };
+          if (url) profile.cardBackground = url; else delete profile.cardBackground;
+          state.members[ctx.user.id] = profile;
+        });
+        await ctx.reply({ embeds: [successEmbed(ctx.bot, 'Arrière-plan mis à jour', url ? `Votre arrière-plan de carte est désormais [cette image](${url}).` : 'Arrière-plan réinitialisé.')] });
+        return;
+      }
+      return commandLevel(ctx, interaction.options.getUser('membre') || ctx.user, true);
     }
     case 'rewards': return commandRewards(ctx, interaction.options.getSubcommand(), {
       level: interaction.options.getInteger('niveau'),
@@ -719,6 +868,11 @@ async function executeSlash(ctx) {
       level: interaction.options.getInteger('niveau')
     });
     case 'prefix': return commandPrefix(ctx, interaction.options.getSubcommand(), interaction.options.getString('valeur'));
+    case 'config': return commandConfig(ctx, interaction.options.getSubcommand(), {
+      min: interaction.options.getInteger('min'),
+      max: interaction.options.getInteger('max'),
+      actif: interaction.options.getBoolean('actif')
+    });
     default: throw new UserFacingError('Cette commande n\'est pas encore disponible.');
   }
 }
@@ -763,7 +917,7 @@ async function executePrefix(ctx, command, args) {
     return commandLevel(ctx, ctx.message.mentions.users.first() || ctx.user, true);
   }
   if (normalized === 'rank') return commandRank(ctx, ctx.message.mentions.users.first() || ctx.user);
-  if (normalized === 'leaderboard') return commandLeaderboard(ctx, Number(args[0]) || 1);
+  if (normalized === 'leaderboard') return commandLeaderboard(ctx, Number(args[0]) || 1, args[1] === 'monthly' ? 'monthly' : 'all');
   if (normalized === 'clear' || normalized === 'purge') return commandClear(ctx, Number(args[0]));
   if (normalized === 'lock') return commandLock(ctx, ctx.message.mentions.channels.first() || ctx.channel);
   if (normalized === 'unlock') return commandUnlock(ctx, ctx.message.mentions.channels.first() || ctx.channel);
@@ -833,6 +987,8 @@ export function createBot(bot, store) {
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildModeration,
+      GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.MessageContent
     ]
   });
@@ -864,7 +1020,42 @@ export function createBot(bot, store) {
     }
   });
 
-  client.on(Events.MessageCreate, async (message) => {
+  // ── Voice XP (premium) ───────────────────────────────────────
+  const voiceSessions = new Map(); // key: guildId:userId → { joinedAt }
+  client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
+    if (!bot.isPremium) return;
+    const member = newState.member || oldState.member;
+    if (!member || member.user.bot) return;
+    const guildId = newState.guild?.id || oldState.guild?.id;
+    const key = `${guildId}:${member.id}`;
+    const afkId = newState.guild?.afkChannelId || oldState.guild?.afkChannelId;
+    const leftVoice = !newState.channelId || newState.channelId === afkId;
+    const joinedVoice = newState.channelId && newState.channelId !== afkId;
+    if (oldState.channelId && leftVoice) {
+      const session = voiceSessions.get(key);
+      if (session) {
+        voiceSessions.delete(key);
+        const minutes = Math.floor((Date.now() - session.joinedAt) / 60_000);
+        if (minutes > 0) await awardVoiceXp(bot, store, newState.guild || oldState.guild, member, minutes).catch(() => {});
+      }
+    }
+    if (joinedVoice) voiceSessions.set(key, { joinedAt: Date.now() });
+  });
+
+  // ── Reaction XP (premium) ─────────────────────────────────────
+  client.on(Events.MessageReactionAdd, async (reaction, user) => {
+    if (!bot.isPremium) return;
+    if (user.bot) return;
+    try {
+      if (reaction.partial) await reaction.fetch();
+      if (!reaction.message.guild) return;
+      const member = await reaction.message.guild.members.fetch(user.id).catch(() => null);
+      if (!member) return;
+      await awardReactionXp(bot, store, reaction.message.guild, member);
+    } catch { /* ignore */ }
+  });
+
+    client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot || !message.guild) return;
     const state = store.getGuild(bot.key, message.guild.id);
     const prefix = state.prefix || PREFIX;
