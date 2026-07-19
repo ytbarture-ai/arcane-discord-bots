@@ -1,6 +1,6 @@
-# [Project name]
+# AiGuild Bot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Bot Discord IA qui génère des structures de serveurs complètes (catégories, salons, rôles, permissions) à partir d'un simple prompt. Powered by Claude AI + discord.js v14.
 
 ## Run & Operate
 
