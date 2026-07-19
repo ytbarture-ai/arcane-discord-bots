@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "AiGuild Website"
+version = "1.0.0"
+id = "artifacts/aiguild-site"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22685
+
+[services.development]
+run = "pnpm --filter @workspace/aiguild-site run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/aiguild-site", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/aiguild-site/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22685"
+BASE_PATH = "/"

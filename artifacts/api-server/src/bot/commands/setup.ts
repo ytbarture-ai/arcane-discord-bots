@@ -4,21 +4,19 @@ import {
   ButtonStyle,
   ChatInputCommandInteraction,
   EmbedBuilder,
-  Guild,
   ModalBuilder,
   PermissionFlagsBits,
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
-  TextChannel,
   TextInputBuilder,
   TextInputStyle,
   ChannelType,
   ButtonInteraction,
-  OverwriteType,
   Colors,
 } from "discord.js";
 import { generateServerStructure } from "../utils/ai.js";
 import { logger } from "../../lib/logger.js";
+import { storeDescription, getDescription } from "../utils/session.js";
 
 export const data = {
   name: "setup",
@@ -57,6 +55,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 export async function handleSetupModal(interaction: any) {
   const description = interaction.fields.getTextInputValue("server_description");
+  const sessionId = storeDescription(description);
 
   const embed = new EmbedBuilder()
     .setColor(Colors.Blue)
@@ -64,7 +63,7 @@ export async function handleSetupModal(interaction: any) {
     .setDescription("Quel est le type de ton serveur ?");
 
   const select = new StringSelectMenuBuilder()
-    .setCustomId(`setup_type:${encodeURIComponent(description)}`)
+    .setCustomId(`setup_type:${sessionId}`)
     .setPlaceholder("Choisis le type de serveur")
     .addOptions([
       { label: "Gaming", value: "gaming", emoji: "🎮" },
@@ -85,8 +84,7 @@ export async function handleSetupModal(interaction: any) {
 }
 
 export async function handleSetupType(interaction: StringSelectMenuInteraction) {
-  const [, encodedDesc] = interaction.customId.split(":");
-  const description = decodeURIComponent(encodedDesc);
+  const [, sessionId] = interaction.customId.split(":");
   const serverType = interaction.values[0];
 
   const embed = new EmbedBuilder()
@@ -96,17 +94,17 @@ export async function handleSetupType(interaction: StringSelectMenuInteraction) 
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`setup_lang:fr:${serverType}:${encodedDesc}`)
+      .setCustomId(`setup_lang:fr:${serverType}:${sessionId}`)
       .setLabel("Français")
       .setEmoji("🇫🇷")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId(`setup_lang:en:${serverType}:${encodedDesc}`)
+      .setCustomId(`setup_lang:en:${serverType}:${sessionId}`)
       .setLabel("English")
       .setEmoji("🇬🇧")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId(`setup_lang:es:${serverType}:${encodedDesc}`)
+      .setCustomId(`setup_lang:es:${serverType}:${sessionId}`)
       .setLabel("Español")
       .setEmoji("🇪🇸")
       .setStyle(ButtonStyle.Secondary),
@@ -116,13 +114,9 @@ export async function handleSetupType(interaction: StringSelectMenuInteraction) 
 }
 
 export async function handleSetupLang(interaction: ButtonInteraction) {
-  const parts = interaction.customId.split(":");
-  const language = parts[1];
-  const serverType = parts[2];
-  const encodedDesc = parts.slice(3).join(":");
-  const description = decodeURIComponent(encodedDesc);
+  const [, language, serverType, sessionId] = interaction.customId.split(":");
+  const description = getDescription(sessionId) ?? "(description expirée)";
 
-  // Confirm before proceeding
   const embed = new EmbedBuilder()
     .setColor(Colors.Orange)
     .setTitle("⚠️ Attention — Génération du serveur")
@@ -136,7 +130,7 @@ export async function handleSetupLang(interaction: ButtonInteraction) {
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`setup_confirm:${language}:${serverType}:${encodedDesc}`)
+      .setCustomId(`setup_confirm:${language}:${serverType}:${sessionId}`)
       .setLabel("Générer le serveur")
       .setEmoji("✨")
       .setStyle(ButtonStyle.Success),
@@ -150,11 +144,8 @@ export async function handleSetupLang(interaction: ButtonInteraction) {
 }
 
 export async function handleSetupConfirm(interaction: ButtonInteraction) {
-  const parts = interaction.customId.split(":");
-  const language = parts[1];
-  const serverType = parts[2];
-  const encodedDesc = parts.slice(3).join(":");
-  const description = decodeURIComponent(encodedDesc);
+  const [, language, serverType, sessionId] = interaction.customId.split(":");
+  const description = getDescription(sessionId) ?? "(description expirée)";
 
   const loadingEmbed = new EmbedBuilder()
     .setColor(Colors.Yellow)
