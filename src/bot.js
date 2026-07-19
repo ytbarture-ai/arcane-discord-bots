@@ -640,7 +640,17 @@ async function commandStats(ctx) {
 }
 
 async function commandPremium(ctx) {
-  await ctx.reply({ embeds: [embed(ctx.bot, 'Arcane Premium', 'Le système Premium est préparé mais n\'est pas encore activé. La future version pourra inviter automatiquement **Arcane Premium** sur un serveur autorisé, après mise en place d\'un paiement et d\'une vérification sécurisée.')] });
+  const isPremium = ctx.bot.key === 'arcane-premium';
+  const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.user?.id}&permissions=8&scope=bot%20applications.commands`;
+  const fields = [
+    { name: '✨ Fonctionnalités', value: 'Toutes les commandes Arcane + priorité de support.', inline: false },
+    { name: '🤖 Bot', value: '**Arcane Premium** — bot dédié, token indépendant.', inline: true },
+    { name: '📌 Statut', value: isPremium ? '🟢 Actif sur ce serveur' : '🔴 Non installé', inline: true }
+  ];
+  if (!isPremium) {
+    fields.push({ name: '🔗 Inviter Arcane Premium', value: `[Cliquez ici pour inviter le bot](${inviteUrl})`, inline: false });
+  }
+  await ctx.reply({ embeds: [embed(ctx.bot, 'Arcane Premium', null, fields)] });
 }
 
 async function commandSupport(ctx) {

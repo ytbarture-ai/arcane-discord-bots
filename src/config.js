@@ -23,6 +23,13 @@ export const BOTS = [
     token: process.env.ARCANE_CHAN_TOKEN || '',
     color: 0xec4899,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/1.png'
+  },
+  {
+    key: 'arcane-premium',
+    displayName: 'Arcane Premium',
+    token: process.env.DISCORD_TOKEN || '',
+    color: 0xf59e0b,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/4.png'
   }
 ];
 
