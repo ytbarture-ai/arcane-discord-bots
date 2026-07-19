@@ -41,6 +41,14 @@ export const BOTS = [
     color: 0x3b82f6,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/3.png',
     isPremium: true
+  },
+  {
+    key: 'support',
+    displayName: 'Support',
+    token: process.env.SUPPORT_TOKEN || '',
+    color: 0x22c55e,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/2.png',
+    isPremium: false
   }
 ];
 
