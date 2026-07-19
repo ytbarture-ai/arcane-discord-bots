@@ -46,9 +46,7 @@ export const BOTS = [
 
 // Leveling defaults
 // Support
-export const SUPPORT_SERVER_URL   = process.env.SUPPORT_SERVER_URL  || '';
-export const SUPPORT_INVITE_CODE  = process.env.SUPPORT_INVITE_CODE || '';
-export const SUPPORT_EMAIL        = process.env.SUPPORT_EMAIL        || '';
+export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || '';
 
 // Leveling defaults
 export const COMMAND_COOLDOWN_MS  = 4_000;

@@ -11,8 +11,6 @@ import {
   FREE_MAX_REWARDS,
   PREFIX,
   SUPPORT_EMAIL,
-  SUPPORT_INVITE_CODE,
-  SUPPORT_SERVER_URL,
   TOP_GG_URL,
   VOICE_XP_MAX,
   VOICE_XP_MIN,
@@ -795,14 +793,10 @@ async function commandConfig(ctx, subcommand, values) {
 }
 
 async function commandSupport(ctx) {
-  const lines = [];
-  if (SUPPORT_SERVER_URL) lines.push(`🌐 **Serveur de support** : [Rejoindre](${SUPPORT_SERVER_URL})`);
-  if (SUPPORT_INVITE_CODE) lines.push(`🔗 **Invitation directe** : discord.gg/${SUPPORT_INVITE_CODE}`);
-  if (SUPPORT_EMAIL)       lines.push(`📧 **E-mail** : ${SUPPORT_EMAIL}`);
-  if (!lines.length) lines.push('Aucune ressource support n\'est encore configurée. Un administrateur peut renseigner les variables `SUPPORT_SERVER_URL`, `SUPPORT_INVITE_CODE` et `SUPPORT_EMAIL` dans Railway.');
-  lines.push('');
-  lines.push('💡 En attendant une réponse, consultez `/help` et vérifiez que le bot a les bonnes permissions sur votre serveur.');
-  await ctx.reply({ embeds: [embed(ctx.bot, '🛟 Support Arcane', lines.join('\n'))] });
+  const body = SUPPORT_EMAIL
+    ? `📧 **Contactez le support** : ${SUPPORT_EMAIL}\n\n💡 Consultez également \`/help\` et vérifiez que le bot a les bonnes permissions sur votre serveur.`
+    : 'Aucune adresse e-mail de support n\'est encore configurée. Un administrateur peut renseigner la variable `SUPPORT_EMAIL` dans Railway.\n\n💡 En attendant, consultez `/help`.';
+  await ctx.reply({ embeds: [embed(ctx.bot, '🛟 Support', body)] });
 }
 
 async function commandVote(ctx) {
