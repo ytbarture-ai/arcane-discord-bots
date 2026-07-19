@@ -33,6 +33,14 @@ export const BOTS = [
     color: 0xf59e0b,
     avatarFallback: 'https://cdn.discordapp.com/embed/avatars/4.png',
     isPremium: true
+  },
+  {
+    key: 'probot-premium',
+    displayName: 'ProBot Premium',
+    token: process.env.PROBOT_TOKEN || '',
+    color: 0x3b82f6,
+    avatarFallback: 'https://cdn.discordapp.com/embed/avatars/3.png',
+    isPremium: true
   }
 ];
 
