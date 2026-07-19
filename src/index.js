@@ -14,13 +14,7 @@ const store = new JsonStore(STORE_PATH);
 await store.init();
 console.log(`Stockage initialisé : ${STORE_PATH}`);
 
-const clients = bots.map((bot) => ({ bot, client: createBot(bot, store) }));
-for (const { bot, client } of clients) {
-  client.login(bot.token).catch((error) => {
-    console.error(`[${bot.displayName}] connexion impossible : ${error.message}`);
-  });
-}
-
+const port = process.env.PORT || 3000;
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -31,10 +25,19 @@ const server = http.createServer((req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000;
-server.listen(port, () => {
-  console.log(`Serveur HTTP de health check démarré sur le port ${port}`);
+await new Promise((resolve) => {
+  server.listen(port, () => {
+    console.log(`Serveur HTTP de health check démarré sur le port ${port}`);
+    resolve();
+  });
 });
+
+const clients = bots.map((bot) => ({ bot, client: createBot(bot, store) }));
+for (const { bot, client } of clients) {
+  client.login(bot.token).catch((error) => {
+    console.error(`[${bot.displayName}] connexion impossible : ${error.message}`);
+  });
+}
 
 async function stop(signal) {
   console.log(`Signal ${signal} reçu, arrêt des bots…`);
