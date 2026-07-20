@@ -47,10 +47,6 @@ export async function handleInteraction(interaction: Interaction) {
 
     // Select menus
     if (interaction.isStringSelectMenu()) {
-      if (interaction.customId.startsWith("setup_type:")) {
-        await setup.handleSetupType(interaction);
-        return;
-      }
       if (interaction.customId === "config_language") {
         await config.handleConfigLanguage(interaction);
         return;
@@ -63,10 +59,6 @@ export async function handleInteraction(interaction: Interaction) {
 
     // Buttons
     if (interaction.isButton()) {
-      if (interaction.customId.startsWith("setup_lang:")) {
-        await setup.handleSetupLang(interaction);
-        return;
-      }
       if (interaction.customId.startsWith("setup_confirm:")) {
         await setup.handleSetupConfirm(interaction);
         return;
