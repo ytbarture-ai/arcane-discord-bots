@@ -1,10 +1,13 @@
 import type { ServerStructure } from "./serverStructure.js";
 
+// Note: "announcement" type requires Community mode on the server.
+// We use "text" everywhere for compatibility.
+
 const templates: Record<string, Record<string, ServerStructure>> = {
   gaming: {
     fr: {
       categories: [
-        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text", topic: "Règles du serveur" }, { name: "annonces", type: "announcement", topic: "Annonces officielles" }, { name: "bienvenus", type: "text" }] },
+        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text", topic: "Règles du serveur" }, { name: "annonces", type: "text", topic: "Annonces officielles" }, { name: "bienvenus", type: "text" }] },
         { name: "💬 GÉNÉRAL", channels: [{ name: "général", type: "text", topic: "Discussion générale" }, { name: "memes", type: "text" }, { name: "recherche-équipe", type: "text" }] },
         { name: "🎮 GAMING", channels: [{ name: "clips-highlights", type: "text" }, { name: "stratégies", type: "text" }, { name: "tournois", type: "text" }] },
         { name: "🔊 VOCAL", channels: [{ name: "Lobby", type: "voice" }, { name: "Équipe 1", type: "voice" }, { name: "Équipe 2", type: "voice" }, { name: "AFK", type: "voice" }] },
@@ -22,7 +25,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     en: {
       categories: [
-        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "announcement" }, { name: "welcome", type: "text" }] },
+        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "text" }, { name: "welcome", type: "text" }] },
         { name: "💬 GENERAL", channels: [{ name: "general", type: "text" }, { name: "memes", type: "text" }, { name: "looking-for-group", type: "text" }] },
         { name: "🎮 GAMING", channels: [{ name: "clips-highlights", type: "text" }, { name: "strategies", type: "text" }, { name: "tournaments", type: "text" }] },
         { name: "🔊 VOICE", channels: [{ name: "Lobby", type: "voice" }, { name: "Team 1", type: "voice" }, { name: "Team 2", type: "voice" }, { name: "AFK", type: "voice" }] },
@@ -40,7 +43,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     es: {
       categories: [
-        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "announcement" }, { name: "bienvenida", type: "text" }] },
+        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "text" }, { name: "bienvenida", type: "text" }] },
         { name: "💬 GENERAL", channels: [{ name: "general", type: "text" }, { name: "memes", type: "text" }, { name: "buscar-equipo", type: "text" }] },
         { name: "🎮 GAMING", channels: [{ name: "clips-highlights", type: "text" }, { name: "estrategias", type: "text" }, { name: "torneos", type: "text" }] },
         { name: "🔊 VOZ", channels: [{ name: "Lobby", type: "voice" }, { name: "Equipo 1", type: "voice" }, { name: "Equipo 2", type: "voice" }, { name: "AFK", type: "voice" }] },
@@ -61,7 +64,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
   community: {
     fr: {
       categories: [
-        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "announcement" }, { name: "rôles-choix", type: "text" }] },
+        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "text" }, { name: "rôles-choix", type: "text" }] },
         { name: "💬 COMMUNAUTÉ", channels: [{ name: "général", type: "text" }, { name: "présentations", type: "text" }, { name: "sondages", type: "text" }, { name: "suggestions", type: "text" }] },
         { name: "🎉 LOISIRS", channels: [{ name: "humour", type: "text" }, { name: "musique", type: "text" }, { name: "photos", type: "text" }] },
         { name: "🔊 VOCAL", channels: [{ name: "Salon général", type: "voice" }, { name: "Détente", type: "voice" }, { name: "AFK", type: "voice" }] },
@@ -79,7 +82,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     en: {
       categories: [
-        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "announcement" }, { name: "self-roles", type: "text" }] },
+        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "text" }, { name: "self-roles", type: "text" }] },
         { name: "💬 COMMUNITY", channels: [{ name: "general", type: "text" }, { name: "introductions", type: "text" }, { name: "polls", type: "text" }, { name: "suggestions", type: "text" }] },
         { name: "🎉 HANGOUT", channels: [{ name: "memes", type: "text" }, { name: "music", type: "text" }, { name: "media", type: "text" }] },
         { name: "🔊 VOICE", channels: [{ name: "General", type: "voice" }, { name: "Chill", type: "voice" }, { name: "AFK", type: "voice" }] },
@@ -97,7 +100,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     es: {
       categories: [
-        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "announcement" }, { name: "roles-opcionales", type: "text" }] },
+        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "text" }, { name: "roles-opcionales", type: "text" }] },
         { name: "💬 COMUNIDAD", channels: [{ name: "general", type: "text" }, { name: "presentaciones", type: "text" }, { name: "encuestas", type: "text" }, { name: "sugerencias", type: "text" }] },
         { name: "🎉 ENTRETENIMIENTO", channels: [{ name: "memes", type: "text" }, { name: "musica", type: "text" }, { name: "fotos", type: "text" }] },
         { name: "🔊 VOZ", channels: [{ name: "General", type: "voice" }, { name: "Relax", type: "voice" }, { name: "AFK", type: "voice" }] },
@@ -118,7 +121,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
   school: {
     fr: {
       categories: [
-        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "announcement" }, { name: "emploi-du-temps", type: "text" }] },
+        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "text" }, { name: "emploi-du-temps", type: "text" }] },
         { name: "📚 COURS", channels: [{ name: "maths", type: "text" }, { name: "français", type: "text" }, { name: "sciences", type: "text" }, { name: "histoire-geo", type: "text" }, { name: "anglais", type: "text" }] },
         { name: "💬 SOCIAL", channels: [{ name: "général", type: "text" }, { name: "aide-devoirs", type: "text" }, { name: "détente", type: "text" }] },
         { name: "🔊 VOCAL", channels: [{ name: "Révisions", type: "voice" }, { name: "Détente", type: "voice" }] },
@@ -136,7 +139,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     en: {
       categories: [
-        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "announcement" }, { name: "schedule", type: "text" }] },
+        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "text" }, { name: "schedule", type: "text" }] },
         { name: "📚 CLASSES", channels: [{ name: "math", type: "text" }, { name: "english", type: "text" }, { name: "science", type: "text" }, { name: "history", type: "text" }, { name: "languages", type: "text" }] },
         { name: "💬 SOCIAL", channels: [{ name: "general", type: "text" }, { name: "homework-help", type: "text" }, { name: "off-topic", type: "text" }] },
         { name: "🔊 VOICE", channels: [{ name: "Study Room", type: "voice" }, { name: "Chill", type: "voice" }] },
@@ -153,7 +156,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     es: {
       categories: [
-        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "announcement" }, { name: "horarios", type: "text" }] },
+        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "text" }, { name: "horarios", type: "text" }] },
         { name: "📚 CLASES", channels: [{ name: "matematicas", type: "text" }, { name: "lengua", type: "text" }, { name: "ciencias", type: "text" }, { name: "historia", type: "text" }, { name: "ingles", type: "text" }] },
         { name: "💬 SOCIAL", channels: [{ name: "general", type: "text" }, { name: "ayuda-deberes", type: "text" }, { name: "off-topic", type: "text" }] },
         { name: "🔊 VOZ", channels: [{ name: "Estudio", type: "voice" }, { name: "Relax", type: "voice" }] },
@@ -272,7 +275,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
   creative: {
     fr: {
       categories: [
-        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "announcement" }] },
+        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "text" }] },
         { name: "🎨 CRÉATION", channels: [{ name: "galerie", type: "text" }, { name: "art-digital", type: "text" }, { name: "illustrations", type: "text" }, { name: "wip-en-cours", type: "text" }] },
         { name: "💬 COMMUNAUTÉ", channels: [{ name: "général", type: "text" }, { name: "critiques", type: "text" }, { name: "tutoriels", type: "text" }, { name: "commandes", type: "text" }] },
         { name: "🔊 VOCAL", channels: [{ name: "Création ensemble", type: "voice" }, { name: "Général", type: "voice" }] },
@@ -289,7 +292,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     en: {
       categories: [
-        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "announcement" }] },
+        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "text" }] },
         { name: "🎨 CREATION", channels: [{ name: "gallery", type: "text" }, { name: "digital-art", type: "text" }, { name: "illustrations", type: "text" }, { name: "wip", type: "text" }] },
         { name: "💬 COMMUNITY", channels: [{ name: "general", type: "text" }, { name: "critique", type: "text" }, { name: "tutorials", type: "text" }, { name: "commissions", type: "text" }] },
         { name: "🔊 VOICE", channels: [{ name: "Create Together", type: "voice" }, { name: "General", type: "voice" }] },
@@ -306,7 +309,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     es: {
       categories: [
-        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "announcement" }] },
+        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "text" }] },
         { name: "🎨 CREACIÓN", channels: [{ name: "galeria", type: "text" }, { name: "arte-digital", type: "text" }, { name: "ilustraciones", type: "text" }, { name: "en-progreso", type: "text" }] },
         { name: "💬 COMUNIDAD", channels: [{ name: "general", type: "text" }, { name: "criticas", type: "text" }, { name: "tutoriales", type: "text" }, { name: "encargos", type: "text" }] },
         { name: "🔊 VOZ", channels: [{ name: "Crear Juntos", type: "voice" }, { name: "General", type: "voice" }] },
@@ -326,7 +329,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
   business: {
     fr: {
       categories: [
-        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "announcement" }, { name: "présentation-équipe", type: "text" }] },
+        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "text" }, { name: "présentation-équipe", type: "text" }] },
         { name: "💼 TRAVAIL", channels: [{ name: "général", type: "text" }, { name: "projets", type: "text" }, { name: "tâches", type: "text" }, { name: "ressources", type: "text" }] },
         { name: "📊 BUSINESS", channels: [{ name: "stratégie", type: "text" }, { name: "marketing", type: "text" }, { name: "finances", type: "text" }] },
         { name: "🔊 RÉUNIONS", channels: [{ name: "Réunion principale", type: "voice" }, { name: "Bureau 1", type: "voice" }, { name: "Bureau 2", type: "voice" }] },
@@ -343,7 +346,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     en: {
       categories: [
-        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "announcement" }, { name: "team-intro", type: "text" }] },
+        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "text" }, { name: "team-intro", type: "text" }] },
         { name: "💼 WORK", channels: [{ name: "general", type: "text" }, { name: "projects", type: "text" }, { name: "tasks", type: "text" }, { name: "resources", type: "text" }] },
         { name: "📊 BUSINESS", channels: [{ name: "strategy", type: "text" }, { name: "marketing", type: "text" }, { name: "finance", type: "text" }] },
         { name: "🔊 MEETINGS", channels: [{ name: "Main Meeting", type: "voice" }, { name: "Office 1", type: "voice" }, { name: "Office 2", type: "voice" }] },
@@ -360,7 +363,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     es: {
       categories: [
-        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "announcement" }, { name: "presentacion-equipo", type: "text" }] },
+        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "text" }, { name: "presentacion-equipo", type: "text" }] },
         { name: "💼 TRABAJO", channels: [{ name: "general", type: "text" }, { name: "proyectos", type: "text" }, { name: "tareas", type: "text" }, { name: "recursos", type: "text" }] },
         { name: "📊 NEGOCIO", channels: [{ name: "estrategia", type: "text" }, { name: "marketing", type: "text" }, { name: "finanzas", type: "text" }] },
         { name: "🔊 REUNIONES", channels: [{ name: "Reunión Principal", type: "voice" }, { name: "Oficina 1", type: "voice" }, { name: "Oficina 2", type: "voice" }] },
@@ -380,7 +383,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
   support: {
     fr: {
       categories: [
-        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "announcement" }, { name: "faq", type: "text" }] },
+        { name: "📢 INFORMATIONS", channels: [{ name: "règles", type: "text" }, { name: "annonces", type: "text" }, { name: "faq", type: "text" }] },
         { name: "🛠️ SUPPORT", channels: [{ name: "créer-un-ticket", type: "text" }, { name: "support-général", type: "text" }, { name: "bugs", type: "text" }] },
         { name: "💬 COMMUNAUTÉ", channels: [{ name: "général", type: "text" }, { name: "off-topic", type: "text" }] },
         { name: "🔊 VOCAL", channels: [{ name: "Support Vocal", type: "voice" }, { name: "Général", type: "voice" }] },
@@ -397,7 +400,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     en: {
       categories: [
-        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "announcement" }, { name: "faq", type: "text" }] },
+        { name: "📢 INFORMATION", channels: [{ name: "rules", type: "text" }, { name: "announcements", type: "text" }, { name: "faq", type: "text" }] },
         { name: "🛠️ SUPPORT", channels: [{ name: "open-a-ticket", type: "text" }, { name: "general-support", type: "text" }, { name: "bug-reports", type: "text" }] },
         { name: "💬 COMMUNITY", channels: [{ name: "general", type: "text" }, { name: "off-topic", type: "text" }] },
         { name: "🔊 VOICE", channels: [{ name: "Support Voice", type: "voice" }, { name: "General", type: "voice" }] },
@@ -414,7 +417,7 @@ const templates: Record<string, Record<string, ServerStructure>> = {
     },
     es: {
       categories: [
-        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "announcement" }, { name: "faq", type: "text" }] },
+        { name: "📢 INFORMACIÓN", channels: [{ name: "reglas", type: "text" }, { name: "anuncios", type: "text" }, { name: "faq", type: "text" }] },
         { name: "🛠️ SOPORTE", channels: [{ name: "abrir-ticket", type: "text" }, { name: "soporte-general", type: "text" }, { name: "reportar-bug", type: "text" }] },
         { name: "💬 COMUNIDAD", channels: [{ name: "general", type: "text" }, { name: "off-topic", type: "text" }] },
         { name: "🔊 VOZ", channels: [{ name: "Soporte Voz", type: "voice" }, { name: "General", type: "voice" }] },

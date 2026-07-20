@@ -4,7 +4,7 @@ export interface ServerStructure {
     position?: number;
     channels: Array<{
       name: string;
-      type: "text" | "voice" | "announcement" | "forum";
+      type: "text" | "voice" | "forum";
       topic?: string;
       slowmode?: number;
     }>;

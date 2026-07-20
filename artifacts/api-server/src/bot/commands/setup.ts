@@ -179,7 +179,6 @@ export async function handleSetupConfirm(interaction: ButtonInteraction) {
         try {
           const channelType =
             chanData.type === "voice" ? ChannelType.GuildVoice
-            : chanData.type === "announcement" ? ChannelType.GuildAnnouncement
             : chanData.type === "forum" ? ChannelType.GuildForum
             : ChannelType.GuildText;
 
