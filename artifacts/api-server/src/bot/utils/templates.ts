@@ -437,3 +437,24 @@ export function getTemplate(serverType: string, language: string): ServerStructu
   const type = templates[serverType] ? serverType : "community";
   return templates[type][lang]!;
 }
+
+const keywords: Record<string, string[]> = {
+  gaming: ["game","gaming","jeu","jeux","gamer","fortnite","minecraft","valorant","lol","fps","mmo","rpg","tournoi","tournament","esport","twitch","stream","clip","highlight","competitive","compétitif","xbox","playstation","ps5","ps4","cod","apex","overwatch","rocket","league"],
+  school: ["école","school","étude","study","cours","class","classe","devoir","homework","examen","exam","lycée","collège","université","university","bac","prof","teacher","élève","student","révision","revision"],
+  roleplay: ["rp","roleplay","role play","lore","personnage","character","fiction","histoire","fantasy","médiéval","medieval","scénario","scenario","univers","universe","hors-jeu","ooc","taverne","tavern","quête","quest"],
+  creative: ["art","créatif","creative","dessin","drawing","illustration","design","graphisme","graphic","photo","musique","music","écriture","writing","peinture","paint","3d","animation","créateur","creator","artiste","artist"],
+  business: ["business","travail","work","entreprise","company","projet","project","équipe","team","pro","professionnel","professional","startup","marketing","finance","rh","hr","réunion","meeting","bureau","office"],
+  support: ["support","aide","help","assistance","ticket","service","client","customer","bug","report","signalement","helpdesk","technique","technical"],
+  friends: ["ami","friend","amis","friends","pote","potes","squad","groupe","privé","private","famille","family"],
+  community: ["communauté","community","général","general","social","discord","serveur","server","membre","member","partage","share"],
+};
+
+export function detectServerType(description: string): string {
+  const lower = description.toLowerCase();
+  const scores: Record<string, number> = {};
+  for (const [type, words] of Object.entries(keywords)) {
+    scores[type] = words.filter(w => lower.includes(w)).length;
+  }
+  const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  return best && best[1] > 0 ? best[0] : "community";
+}

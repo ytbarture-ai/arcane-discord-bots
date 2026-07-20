@@ -6,15 +6,13 @@ import {
   EmbedBuilder,
   ModalBuilder,
   PermissionFlagsBits,
-  StringSelectMenuBuilder,
-  StringSelectMenuInteraction,
   TextInputBuilder,
   TextInputStyle,
   ChannelType,
   ButtonInteraction,
   Colors,
 } from "discord.js";
-import { getTemplate } from "../utils/templates.js";
+import { getTemplate, detectServerType } from "../utils/templates.js";
 import { logger } from "../../lib/logger.js";
 import { storeDescription, getDescription } from "../utils/session.js";
 
@@ -28,26 +26,35 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: "❌ Tu dois avoir la permission **Administrateur** pour utiliser cette commande.",
-      ephemeral: true,
+      flags: 64,
     });
     return;
   }
 
-  // Show modal for server description
   const modal = new ModalBuilder()
     .setCustomId("setup_modal")
-    .setTitle("Configuration du serveur — AiGuild");
+    .setTitle("AiGuild — Créer ton serveur");
 
-  const descriptionInput = new TextInputBuilder()
+  const descInput = new TextInputBuilder()
     .setCustomId("server_description")
-    .setLabel("Décris ton serveur en quelques mots")
+    .setLabel("Décris ton serveur")
     .setStyle(TextInputStyle.Paragraph)
-    .setPlaceholder("Ex: Un serveur gaming compétitif pour joueurs de FPS, avec des tournois et une communauté active")
+    .setPlaceholder("Ex: Un serveur gaming pour jouer à Fortnite avec mes amis, avec des tournois et des clips")
     .setRequired(true)
     .setMaxLength(500);
 
+  const langInput = new TextInputBuilder()
+    .setCustomId("server_language")
+    .setLabel("Langue (fr / en / es)")
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder("fr")
+    .setRequired(true)
+    .setMaxLength(2)
+    .setMinLength(2);
+
   modal.addComponents(
-    new ActionRowBuilder<TextInputBuilder>().addComponents(descriptionInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(descInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(langInput),
   );
 
   await interaction.showModal(modal);
@@ -55,84 +62,35 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 export async function handleSetupModal(interaction: any) {
   const description = interaction.fields.getTextInputValue("server_description");
-  const sessionId = storeDescription(description);
+  const rawLang = interaction.fields.getTextInputValue("server_language").toLowerCase().trim();
+  const language = ["fr", "en", "es"].includes(rawLang) ? rawLang : "fr";
+  const serverType = detectServerType(description);
+  const sessionId = storeDescription(`${description}||${serverType}||${language}`);
+
+  const langLabel = language === "fr" ? "🇫🇷 Français" : language === "en" ? "🇬🇧 English" : "🇪🇸 Español";
+  const typeLabel: Record<string, string> = {
+    gaming: "🎮 Gaming", community: "👥 Communauté", school: "📚 École",
+    friends: "🤝 Amis", roleplay: "🎭 Roleplay", creative: "🎨 Créatif",
+    business: "💼 Business", support: "🛠️ Support",
+  };
 
   const embed = new EmbedBuilder()
     .setColor(Colors.Blue)
-    .setTitle("Type de serveur")
-    .setDescription("Quel est le type de ton serveur ?");
-
-  const select = new StringSelectMenuBuilder()
-    .setCustomId(`setup_type:${sessionId}`)
-    .setPlaceholder("Choisis le type de serveur")
-    .addOptions([
-      { label: "Gaming", value: "gaming", emoji: "🎮" },
-      { label: "Communauté", value: "community", emoji: "👥" },
-      { label: "Éducation / École", value: "school", emoji: "📚" },
-      { label: "Amis", value: "friends", emoji: "🤝" },
-      { label: "Roleplay", value: "roleplay", emoji: "🎭" },
-      { label: "Créatif / Art", value: "creative", emoji: "🎨" },
-      { label: "Business / Pro", value: "business", emoji: "💼" },
-      { label: "Support / Service", value: "support", emoji: "🛠️" },
-    ]);
-
-  await interaction.reply({
-    embeds: [embed],
-    components: [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select)],
-    ephemeral: true,
-  });
-}
-
-export async function handleSetupType(interaction: StringSelectMenuInteraction) {
-  const [, sessionId] = interaction.customId.split(":");
-  const serverType = interaction.values[0];
-
-  const embed = new EmbedBuilder()
-    .setColor(Colors.Blue)
-    .setTitle("Langue du serveur")
-    .setDescription("Quelle langue pour les noms de canaux et catégories ?");
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`setup_lang:fr:${serverType}:${sessionId}`)
-      .setLabel("Français")
-      .setEmoji("🇫🇷")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`setup_lang:en:${serverType}:${sessionId}`)
-      .setLabel("English")
-      .setEmoji("🇬🇧")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`setup_lang:es:${serverType}:${sessionId}`)
-      .setLabel("Español")
-      .setEmoji("🇪🇸")
-      .setStyle(ButtonStyle.Secondary),
-  );
-
-  await interaction.update({ embeds: [embed], components: [row] });
-}
-
-export async function handleSetupLang(interaction: ButtonInteraction) {
-  const [, language, serverType, sessionId] = interaction.customId.split(":");
-  const description = getDescription(sessionId) ?? "(description expirée)";
-
-  const embed = new EmbedBuilder()
-    .setColor(Colors.Orange)
-    .setTitle("⚠️ Attention — Génération du serveur")
+    .setTitle("🤖 Analyse terminée")
     .setDescription(
-      `L'IA va générer et **appliquer** une nouvelle structure à ce serveur.\n\n` +
-        `📝 **Description :** ${description}\n` +
-        `🎮 **Type :** ${serverType}\n` +
-        `🌐 **Langue :** ${language === "fr" ? "Français" : language === "en" ? "English" : "Español"}\n\n` +
-        `⚠️ Les catégories et salons existants **ne seront pas supprimés**. La nouvelle structure sera ajoutée.\n\nVeux-tu continuer ?`,
+      `J'ai analysé ta description et voici ce que je vais créer :\n\n` +
+      `📝 **Description :** ${description}\n` +
+      `🏷️ **Type détecté :** ${typeLabel[serverType] ?? serverType}\n` +
+      `🌐 **Langue :** ${langLabel}\n\n` +
+      `⚠️ Les canaux et rôles existants **ne seront pas supprimés**. La structure sera ajoutée.\n\n` +
+      `Prêt à construire ton serveur ?`
     );
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`setup_confirm:${language}:${serverType}:${sessionId}`)
-      .setLabel("Générer le serveur")
-      .setEmoji("✨")
+      .setCustomId(`setup_confirm:${sessionId}`)
+      .setLabel("Construire le serveur")
+      .setEmoji("🚀")
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId("setup_cancel")
@@ -140,114 +98,135 @@ export async function handleSetupLang(interaction: ButtonInteraction) {
       .setStyle(ButtonStyle.Danger),
   );
 
-  await interaction.update({ embeds: [embed], components: [row] });
+  await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function updateProgress(interaction: ButtonInteraction, title: string, desc: string, color: number) {
+  const embed = new EmbedBuilder().setColor(color).setTitle(title).setDescription(desc);
+  await interaction.editReply({ embeds: [embed], components: [] });
 }
 
 export async function handleSetupConfirm(interaction: ButtonInteraction) {
-  const [, language, serverType, sessionId] = interaction.customId.split(":");
-  const description = getDescription(sessionId) ?? "(description expirée)";
+  const [, sessionId] = interaction.customId.split(":");
+  const raw = getDescription(sessionId) ?? "";
+  const [description, serverType, language] = raw.split("||");
 
-  const loadingEmbed = new EmbedBuilder()
-    .setColor(Colors.Yellow)
-    .setTitle("⏳ Application en cours…")
-    .setDescription("Création des catégories, salons et rôles sur ton serveur…");
+  await interaction.update({
+    embeds: [new EmbedBuilder().setColor(Colors.Yellow).setTitle("🔍 Analyse de ta description…").setDescription("Préparation de la structure de ton serveur…")],
+    components: [],
+  });
 
-  await interaction.update({ embeds: [loadingEmbed], components: [] });
+  await sleep(1500);
 
-  try {
-    const structure = getTemplate(serverType, language);
-    const guild = interaction.guild!;
+  const structure = getTemplate(serverType ?? "community", language ?? "fr");
+  const guild = interaction.guild!;
 
-    const applyEmbed = new EmbedBuilder()
-      .setColor(Colors.Yellow)
-      .setTitle("🔨 Application de la structure…")
-      .setDescription("Création des rôles, catégories et salons…");
+  await updateProgress(interaction,
+    "🎭 Génération des rôles…",
+    "Création des rôles et permissions…",
+    Colors.Yellow
+  );
 
-    await interaction.editReply({ embeds: [applyEmbed] });
+  await sleep(800);
 
-    // Create roles (from lowest to highest)
-    const createdRoles: string[] = [];
-    for (const roleData of [...structure.roles].reverse()) {
-      try {
-        const role = await guild.roles.create({
-          name: roleData.name,
-          color: (roleData.color as any) ?? undefined,
-          hoist: roleData.hoist ?? false,
-          mentionable: roleData.mentionable ?? false,
-        });
-        createdRoles.push(role.name);
-      } catch (err) {
-        logger.warn({ err, role: roleData.name }, "Failed to create role");
-      }
+  // Créer les rôles
+  const createdRoles: string[] = [];
+  for (const roleData of [...structure.roles].reverse()) {
+    try {
+      const role = await guild.roles.create({
+        name: roleData.name,
+        color: (roleData.color as any) ?? undefined,
+        hoist: roleData.hoist ?? false,
+        mentionable: roleData.mentionable ?? false,
+      });
+      createdRoles.push(role.name);
+    } catch (err) {
+      logger.warn({ err, role: roleData.name }, "Failed to create role");
     }
-
-    // Create categories and channels
-    const createdCategories: string[] = [];
-    for (const catData of structure.categories) {
-      try {
-        const category = await guild.channels.create({
-          name: catData.name,
-          type: ChannelType.GuildCategory,
-        });
-        createdCategories.push(category.name);
-
-        for (const chanData of catData.channels) {
-          try {
-            const channelType =
-              chanData.type === "voice"
-                ? ChannelType.GuildVoice
-                : chanData.type === "announcement"
-                  ? ChannelType.GuildAnnouncement
-                  : chanData.type === "forum"
-                    ? ChannelType.GuildForum
-                    : ChannelType.GuildText;
-
-            await guild.channels.create({
-              name: chanData.name,
-              type: channelType,
-              parent: category.id,
-              topic: chanData.topic,
-              rateLimitPerUser: chanData.slowmode,
-            });
-          } catch (err) {
-            logger.warn({ err, channel: chanData.name }, "Failed to create channel");
-          }
-        }
-      } catch (err) {
-        logger.warn({ err, category: catData.name }, "Failed to create category");
-      }
-    }
-
-    const doneEmbed = new EmbedBuilder()
-      .setColor(Colors.Green)
-      .setTitle("✅ Serveur généré avec succès !")
-      .setDescription(
-        `Voici ce qui a été créé sur **${guild.name}** :\n\n` +
-          `📁 **${createdCategories.length} catégories** : ${createdCategories.join(", ")}\n` +
-          `🎭 **${createdRoles.length} rôles** : ${createdRoles.join(", ")}\n\n` +
-          `Tu peux maintenant personnaliser les permissions et les salons selon tes besoins.`,
-      )
-      .setFooter({ text: "AiGuild • Discord Server Builder" })
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [doneEmbed] });
-  } catch (err) {
-    logger.error({ err }, "Error generating server structure");
-    const errorEmbed = new EmbedBuilder()
-      .setColor(Colors.Red)
-      .setTitle("❌ Erreur")
-      .setDescription(
-        "Une erreur s'est produite lors de la création. Vérifie les permissions du bot et réessaie.",
-      );
-    await interaction.editReply({ embeds: [errorEmbed] });
   }
+
+  await updateProgress(interaction,
+    "📁 Création des catégories…",
+    `✅ **${createdRoles.length} rôles créés**\n\nConstruction de l'architecture du serveur…`,
+    Colors.Yellow
+  );
+
+  await sleep(800);
+
+  // Créer les catégories et salons
+  const createdCategories: string[] = [];
+  let totalChannels = 0;
+
+  for (const catData of structure.categories) {
+    try {
+      const category = await guild.channels.create({
+        name: catData.name,
+        type: ChannelType.GuildCategory,
+      });
+      createdCategories.push(catData.name);
+
+      await updateProgress(interaction,
+        "💬 Configuration des salons…",
+        `✅ **${createdRoles.length} rôles créés**\n📁 **Catégorie :** ${catData.name}\n\nCréation des salons en cours…`,
+        Colors.Yellow
+      );
+
+      for (const chanData of catData.channels) {
+        try {
+          const channelType =
+            chanData.type === "voice" ? ChannelType.GuildVoice
+            : chanData.type === "announcement" ? ChannelType.GuildAnnouncement
+            : chanData.type === "forum" ? ChannelType.GuildForum
+            : ChannelType.GuildText;
+
+          await guild.channels.create({
+            name: chanData.name,
+            type: channelType,
+            parent: category.id,
+            topic: chanData.topic,
+            rateLimitPerUser: chanData.slowmode,
+          });
+          totalChannels++;
+        } catch (err) {
+          logger.warn({ err, channel: chanData.name }, "Failed to create channel");
+        }
+      }
+    } catch (err) {
+      logger.warn({ err, category: catData.name }, "Failed to create category");
+    }
+  }
+
+  await updateProgress(interaction,
+    "✨ Finalisation…",
+    `✅ **${createdRoles.length} rôles créés**\n✅ **${createdCategories.length} catégories créées**\n✅ **${totalChannels} salons créés**\n\nOn y est presque…`,
+    Colors.Green
+  );
+
+  await sleep(1000);
+
+  const doneEmbed = new EmbedBuilder()
+    .setColor(Colors.Green)
+    .setTitle("🚀 Serveur construit avec succès !")
+    .setDescription(
+      `Voici ce qui a été créé sur **${guild.name}** :\n\n` +
+      `🎭 **${createdRoles.length} rôles** créés\n` +
+      `📁 **${createdCategories.length} catégories** créées\n` +
+      `💬 **${totalChannels} salons** créés\n\n` +
+      `Tu peux maintenant personnaliser les permissions selon tes besoins.`
+    )
+    .setFooter({ text: "AiGuild • Discord Server Builder" })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [doneEmbed] });
 }
 
 export async function handleSetupCancel(interaction: ButtonInteraction) {
-  const embed = new EmbedBuilder()
-    .setColor(Colors.Red)
-    .setTitle("❌ Annulé")
-    .setDescription("La génération du serveur a été annulée.");
-
-  await interaction.update({ embeds: [embed], components: [] });
+  await interaction.update({
+    embeds: [new EmbedBuilder().setColor(Colors.Red).setTitle("❌ Annulé").setDescription("La création du serveur a été annulée.")],
+    components: [],
+  });
 }
