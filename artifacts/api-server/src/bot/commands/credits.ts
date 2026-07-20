@@ -22,7 +22,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     .addFields(
       {
         name: "🤖 Technologie",
-        value: "Propulsé par **GPT-4o mini** (OpenAI) + **discord.js v14**",
+        value: "Propulsé par **discord.js v14** — structure générée par templates",
         inline: true,
       },
       {

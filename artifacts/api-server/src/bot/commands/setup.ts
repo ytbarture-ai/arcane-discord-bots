@@ -14,13 +14,13 @@ import {
   ButtonInteraction,
   Colors,
 } from "discord.js";
-import { generateServerStructure } from "../utils/ai.js";
+import { getTemplate } from "../utils/templates.js";
 import { logger } from "../../lib/logger.js";
 import { storeDescription, getDescription } from "../utils/session.js";
 
 export const data = {
   name: "setup",
-  description: "Génère une structure complète pour ton serveur Discord avec l'IA",
+  description: "Génère une structure complète pour ton serveur Discord",
   default_member_permissions: String(PermissionFlagsBits.Administrator),
 };
 
@@ -149,13 +149,13 @@ export async function handleSetupConfirm(interaction: ButtonInteraction) {
 
   const loadingEmbed = new EmbedBuilder()
     .setColor(Colors.Yellow)
-    .setTitle("⏳ Génération en cours…")
-    .setDescription("L'IA génère la structure de ton serveur. Cela peut prendre quelques secondes…");
+    .setTitle("⏳ Application en cours…")
+    .setDescription("Création des catégories, salons et rôles sur ton serveur…");
 
   await interaction.update({ embeds: [loadingEmbed], components: [] });
 
   try {
-    const structure = await generateServerStructure(description, serverType, language);
+    const structure = getTemplate(serverType, language);
     const guild = interaction.guild!;
 
     const applyEmbed = new EmbedBuilder()
@@ -227,7 +227,7 @@ export async function handleSetupConfirm(interaction: ButtonInteraction) {
           `🎭 **${createdRoles.length} rôles** : ${createdRoles.join(", ")}\n\n` +
           `Tu peux maintenant personnaliser les permissions et les salons selon tes besoins.`,
       )
-      .setFooter({ text: "AiGuild • Powered by Claude AI" })
+      .setFooter({ text: "AiGuild • Discord Server Builder" })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [doneEmbed] });
@@ -237,7 +237,7 @@ export async function handleSetupConfirm(interaction: ButtonInteraction) {
       .setColor(Colors.Red)
       .setTitle("❌ Erreur")
       .setDescription(
-        "Une erreur s'est produite lors de la génération. Vérifie ta clé API OpenAI et réessaie.",
+        "Une erreur s'est produite lors de la création. Vérifie les permissions du bot et réessaie.",
       );
     await interaction.editReply({ embeds: [errorEmbed] });
   }
