@@ -2,8 +2,8 @@
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
 function getApiKey(): string {
-  const key = process.env["ANTHROPIC_API_KEY"]; // variable réutilisée pour la clé OpenRouter
-  if (!key) throw new Error("ANTHROPIC_API_KEY (OpenRouter key) is not set");
+  const key = process.env["OPENROUTER_API_KEY"];
+  if (!key) throw new Error("OPENROUTER_API_KEY is not set");
   return key;
 }
 
