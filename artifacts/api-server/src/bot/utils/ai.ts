@@ -1,9 +1,9 @@
-// OpenRouter API (OpenAI-compatible format)
-const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+// OpenAI API
+const OPENAI_BASE = "https://api.openai.com/v1";
 
 function getApiKey(): string {
-  const key = process.env["OPENROUTER_API_KEY"];
-  if (!key) throw new Error("OPENROUTER_API_KEY is not set");
+  const key = process.env["OPENAI_API_KEY"];
+  if (!key) throw new Error("OPENAI_API_KEY is not set");
   return key;
 }
 
@@ -72,16 +72,14 @@ Rules:
 - Colors should be hex codes like "#3498db"
 - ONLY return valid JSON, no explanation`;
 
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+  const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${getApiKey()}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://aiguild.me",
-      "X-Title": "AiGuild Bot",
     },
     body: JSON.stringify({
-      model: "anthropic/claude-haiku-4-5",
+      model: "gpt-4o-mini",
       max_tokens: 2000,
       messages: [{ role: "user", content: prompt }],
     }),
@@ -89,7 +87,7 @@ Rules:
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`OpenRouter error ${res.status}: ${err}`);
+    throw new Error(`OpenAI error ${res.status}: ${err}`);
   }
 
   const data = await res.json() as {
@@ -97,7 +95,7 @@ Rules:
   };
 
   const text = data.choices[0]?.message?.content?.trim();
-  if (!text) throw new Error("Empty response from OpenRouter");
+  if (!text) throw new Error("Empty response from OpenAI");
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON found in AI response");

@@ -237,7 +237,7 @@ export async function handleSetupConfirm(interaction: ButtonInteraction) {
       .setColor(Colors.Red)
       .setTitle("❌ Erreur")
       .setDescription(
-        "Une erreur s'est produite lors de la génération. Vérifie ta clé API OpenRouter et réessaie.",
+        "Une erreur s'est produite lors de la génération. Vérifie ta clé API OpenAI et réessaie.",
       );
     await interaction.editReply({ embeds: [errorEmbed] });
   }
